@@ -1,0 +1,30 @@
+{
+  "name": "inrt-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "clean": "npx --yes rimraf@5 .next node_modules/.cache",
+    "dev": "cross-env PORT=3033 next dev",
+    "dev:fresh": "npm run clean && cross-env PORT=3033 next dev",
+    "build": "next build",
+    "start": "cross-env PORT=3033 next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "axios": "^1.14.0",
+    "lucide-react": "^1.7.0",
+    "next": "^14.2.18",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-qr-code": "^2.0.18"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.18",
+    "typescript": "^5.6.3"
+  }
+}
