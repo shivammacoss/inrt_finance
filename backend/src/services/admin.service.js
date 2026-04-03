@@ -406,6 +406,10 @@ async function approveRequest(adminUser, requestId, env, adminNote = '') {
       reqDoc.adminNote = noteTrim;
       await reqDoc.save();
 
+      const depositMeta = { requestId: reqDoc._id.toString(), mintedTo: target };
+      if (reqDoc.paymentMethod === 'razorpay' && reqDoc.paymentReference) {
+        depositMeta.razorpayPaymentId = reqDoc.paymentReference;
+      }
       await Transaction.create({
         user: user._id,
         type: 'deposit',
@@ -413,7 +417,7 @@ async function approveRequest(adminUser, requestId, env, adminNote = '') {
         status: 'completed',
         txHash,
         note: 'Deposit request approved',
-        metadata: { requestId: reqDoc._id.toString(), mintedTo: target },
+        metadata: depositMeta,
       });
 
       await AdminAction.create({

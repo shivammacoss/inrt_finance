@@ -142,6 +142,32 @@ export const api = {
     }>('/wallet/deposit-info'),
   transfer: (body: { amount: string; toEmail?: string; toWalletAddress?: string }) =>
     request<{ ok: boolean }>('/wallet/transfer', { method: 'POST', body }),
+  createRazorpayOrder: (body: { amount: string | number }) =>
+    request<{
+      orderId: string;
+      amount: number;
+      currency: string;
+      keyId: string;
+      inrtAmount: string;
+      amountInr: string;
+    }>('/payment/create-order', { method: 'POST', body }),
+  verifyRazorpayPayment: (body: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+    amount?: string | number;
+  }) =>
+    request<{
+      ok: boolean;
+      duplicate?: boolean;
+      mode?: string;
+      balance?: string;
+      txHash?: string;
+      inrtAmount?: string;
+      requestSubmitted?: boolean;
+      requestId?: string;
+      message?: string;
+    }>('/payment/verify', { method: 'POST', body }),
   depositRequest: (body: {
     amount: string;
     paymentMethod: 'upi' | 'bank_transfer' | 'card' | 'other';

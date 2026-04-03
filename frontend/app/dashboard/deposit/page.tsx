@@ -12,6 +12,26 @@ import { DashboardBackLink } from '@/components/dashboard/DashboardBackLink';
 import { PaymentInstructions } from '@/components/dashboard/PaymentInstructions';
 import type { DashboardPayMethod } from '@/components/dashboard/dashboard-types';
 
+type RazorpayHandlerResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+function loadRazorpayScript(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.reject(new Error('No window'));
+  const w = window as Window & { Razorpay?: new (opts: Record<string, unknown>) => { open: () => void } };
+  if (w.Razorpay) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Could not load Razorpay Checkout'));
+    document.body.appendChild(s);
+  });
+}
+
 export default function DashboardDepositPage() {
   const { user } = useAuth();
   const { depositAddr, contractAddr, paymentRails, load } = useDashboardData();
@@ -21,6 +41,10 @@ export default function DashboardDepositPage() {
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [rzAmount, setRzAmount] = useState('');
+  const [rzError, setRzError] = useState('');
+  const [rzMsg, setRzMsg] = useState('');
+  const [rzPaying, setRzPaying] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,13 +69,122 @@ export default function DashboardDepositPage() {
     }
   }
 
+  async function onRazorpayPay() {
+    if (!user || rzPaying) return;
+    setRzError('');
+    setRzMsg('');
+    const trimmed = rzAmount.trim();
+    if (!trimmed) {
+      setRzError('Enter an amount in INR');
+      return;
+    }
+    setRzPaying(true);
+    try {
+      const order = await api.createRazorpayOrder({ amount: trimmed });
+      await loadRazorpayScript();
+      const RZ = (window as Window & { Razorpay?: new (o: Record<string, unknown>) => { open: () => void } })
+        .Razorpay;
+      if (!RZ) throw new Error('Razorpay Checkout unavailable');
+
+      await new Promise<void>((resolve, reject) => {
+        const opts = {
+          key: order.keyId,
+          amount: order.amount,
+          currency: order.currency,
+          name: 'INRT',
+          description: `Deposit — ~${order.inrtAmount} INRT`,
+          order_id: order.orderId,
+          prefill: {
+            email: user.email || undefined,
+            name: user.fullName || undefined,
+          },
+          theme: { color: '#0d9488' },
+          handler: async (response: RazorpayHandlerResponse) => {
+            try {
+              const v = await api.verifyRazorpayPayment({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amount: order.amountInr,
+              });
+              if (v.duplicate) {
+                setRzMsg('Payment already recorded. Your balance is up to date.');
+              } else if (v.mode === 'auto') {
+                setRzMsg(
+                  v.txHash
+                    ? `Payment successful. Minted on-chain. Tx: ${v.txHash.slice(0, 18)}…`
+                    : 'Payment successful.'
+                );
+              } else {
+                setRzMsg(v.message || 'Payment verified. Awaiting admin approval to mint INRT.');
+              }
+              await load();
+            } catch (e) {
+              setRzError(e instanceof Error ? e.message : 'Verification failed');
+            } finally {
+              resolve();
+            }
+          },
+          modal: {
+            ondismiss: () => resolve(),
+          },
+        };
+        const instance = new RZ(opts);
+        instance.open();
+      });
+    } catch (err) {
+      setRzError(err instanceof Error ? err.message : 'Payment failed');
+    } finally {
+      setRzPaying(false);
+    }
+  }
+
   return (
     <DashboardChrome title="Deposit" subtitle="Request INRT after you pay" loginNext="/dashboard/deposit">
       {error ? <div className="adminPvAlert adminPvAlertErr">{error}</div> : null}
       {msg ? <div className="adminPvAlert adminPvAlertOk">{msg}</div> : null}
+      {rzError ? <div className="adminPvAlert adminPvAlertErr">{rzError}</div> : null}
+      {rzMsg ? <div className="adminPvAlert adminPvAlertOk">{rzMsg}</div> : null}
 
       <section className="adminPvSection">
         <p className="inrtCbStepLabel">Cash in</p>
+        <div className="adminPvCard max-w-xl inrtCardPro" style={{ marginBottom: '1.25rem' }}>
+          <h3 className="inrtSectionTitle">Pay with Razorpay</h3>
+          <p className="inrtSectionHint">
+            UPI, cards, and netbanking in INR. The API verifies the payment signature before crediting INRT; save a BSC
+            wallet in{' '}
+            <Link href="/dashboard/profile" style={{ color: '#0d9488', fontWeight: 600 }}>
+              Profile
+            </Link>
+            . Configure <code className="text-xs">RAZORPAY_KEY_ID</code> and{' '}
+            <code className="text-xs">RAZORPAY_KEY_SECRET</code> on the server.
+          </p>
+          <div className="adminPvField">
+            <label htmlFor="rzInr">Amount (INR)</label>
+            <input
+              id="rzInr"
+              value={rzAmount}
+              onChange={(e) => setRzAmount(e.target.value)}
+              placeholder="e.g. 100"
+              inputMode="decimal"
+              disabled={rzPaying}
+            />
+          </div>
+          <button
+            type="button"
+            className="adminPvBtn adminPvBtnPrimary"
+            disabled={rzPaying}
+            onClick={() => void onRazorpayPay()}
+          >
+            {rzPaying ? (
+              <>
+                <Loader2 size={16} className="adminPvSpin" /> Opening checkout…
+              </>
+            ) : (
+              'Pay now'
+            )}
+          </button>
+        </div>
         <div className="adminPvGrid2" style={{ alignItems: 'start' }}>
           <div className="adminPvCard max-w-xl inrtCardPro">
             <h3 className="inrtSectionTitle">Request deposit</h3>

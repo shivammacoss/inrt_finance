@@ -13,6 +13,8 @@ const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const walletRoutes = require('./routes/wallet.routes');
 const adminRoutes = require('./routes/admin.routes');
+const paymentRoutes = require('./routes/payment.routes');
+const paymentController = require('./controllers/payment.controller');
 
 function buildCorsOrigin(env) {
   if (env.nodeEnv === 'production') {
@@ -44,6 +46,13 @@ function createApp() {
     })
   );
   app.use(cookieParser());
+  /* Razorpay webhook HMAC is computed over raw body — must run before express.json() */
+  app.post(
+    '/payment/webhook',
+    express.raw({ type: 'application/json' }),
+    requireDb,
+    paymentController.webhook
+  );
   app.use(express.json({ limit: '512kb' }));
   app.use(
     morgan('combined', {
@@ -60,6 +69,7 @@ function createApp() {
   app.use('/auth', requireDb, authRoutes);
   app.use('/user', requireDb, walletLimiter, userRoutes);
   app.use('/wallet', requireDb, walletLimiter, walletRoutes);
+  app.use('/payment', requireDb, walletLimiter, paymentRoutes);
   app.use('/admin', requireDb, adminLimiter, adminRoutes);
 
   app.use(notFoundHandler);

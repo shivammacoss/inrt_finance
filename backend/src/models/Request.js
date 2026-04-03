@@ -36,5 +36,14 @@ const requestSchema = new mongoose.Schema(
 );
 
 requestSchema.index({ status: 1, createdAt: -1 });
+requestSchema.index(
+  { paymentReference: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      paymentReference: { $exists: true, $type: 'string', $nin: ['', null] },
+    },
+  }
+);
 
 module.exports = mongoose.model('Request', requestSchema);

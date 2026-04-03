@@ -23,6 +23,15 @@ function subDecimalStrings(a, b, decimals = DEFAULT_DEC) {
   return ethers.formatUnits(x - y, decimals);
 }
 
+/** Multiply two non-negative decimal strings (e.g. INR × rate → INRT). */
+function multiplyDecimalStrings(a, b, decimals = DEFAULT_DEC) {
+  const x = ethers.parseUnits(normalizeDecimal(a), decimals);
+  const y = ethers.parseUnits(normalizeDecimal(b), decimals);
+  const unit = ethers.parseUnits('1', decimals);
+  const prod = (x * y) / unit;
+  return ethers.formatUnits(prod, decimals);
+}
+
 function normalizeDecimal(s) {
   const t = String(s).trim();
   if (!/^\d+(\.\d+)?$/.test(t)) {
@@ -316,6 +325,7 @@ module.exports = {
   listTransactions,
   addDecimalStrings,
   subDecimalStrings,
+  multiplyDecimalStrings,
   normalizeDecimal,
   cmpPositive,
 };

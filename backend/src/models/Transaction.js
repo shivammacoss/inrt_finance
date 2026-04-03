@@ -39,4 +39,14 @@ transactionSchema.index(
   }
 );
 
+transactionSchema.index(
+  { 'metadata.razorpayPaymentId': 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      'metadata.razorpayPaymentId': { $exists: true, $type: 'string', $nin: ['', null] },
+    },
+  }
+);
+
 module.exports = mongoose.model('Transaction', transactionSchema);

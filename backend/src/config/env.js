@@ -67,6 +67,14 @@ function loadEnv() {
     },
   };
 
+  const razorpayDepositModeRaw = (process.env.RAZORPAY_DEPOSIT_MODE || 'safe').trim().toLowerCase();
+  const razorpayDepositMode = razorpayDepositModeRaw === 'auto' ? 'auto' : 'safe';
+  const razMin = parseFloat(process.env.RAZORPAY_MIN_INR || '1');
+  const razMax = parseFloat(process.env.RAZORPAY_MAX_INR || '500000');
+  const razorpayMinInr = Number.isFinite(razMin) && razMin > 0 ? razMin : 1;
+  let razorpayMaxInr = Number.isFinite(razMax) && razMax > 0 ? razMax : 500000;
+  if (razorpayMaxInr < razorpayMinInr) razorpayMaxInr = razorpayMinInr;
+
   return {
     port: parseInt(process.env.PORT || '5001', 10),
     nodeEnv: process.env.NODE_ENV || 'development',
@@ -89,6 +97,13 @@ function loadEnv() {
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
     paymentRails,
+    razorpayKeyId: (process.env.RAZORPAY_KEY_ID || '').trim(),
+    razorpayKeySecret: (process.env.RAZORPAY_KEY_SECRET || '').trim(),
+    razorpayWebhookSecret: (process.env.RAZORPAY_WEBHOOK_SECRET || '').trim(),
+    razorpayDepositMode,
+    razorpayMinInr,
+    razorpayMaxInr,
+    inrtPerInrRate: (process.env.INRT_PER_INR_RATE || '1').trim(),
   };
 }
 
