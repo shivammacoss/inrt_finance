@@ -1,59 +1,112 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 
 const base = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 export type SafeUser = {
   id: string;
   email: string;
+  fullName?: string;
+  phone?: string;
+  avatarUrl?: string;
   walletAddress: string;
   balance: string;
+  ledgerLocked?: string;
   role: string;
+  createdAt?: string;
 };
+
+export type PaymentRails = {
+  upi: { payToId: string | null; payToName: string };
+  bank_transfer: {
+    accountName: string | null;
+    accountNumber: string | null;
+    ifsc: string | null;
+    bankName: string | null;
+  };
+  card: { instructions: string };
+  other: { instructions: string };
+};
+
+const client = axios.create({
+  baseURL: base(),
+  withCredentials: true,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+client.interceptors.response.use(
+  (r) => r,
+  async (error: AxiosError) => {
+    const cfg = error.config as (AxiosRequestConfig & { _retry?: boolean }) | undefined;
+    if (!cfg || cfg._retry) return Promise.reject(error);
+    const url = cfg.url || '';
+    if (url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh')) {
+      return Promise.reject(error);
+    }
+    if (error.response?.status === 401) {
+      cfg._retry = true;
+      try {
+        await client.post('/auth/refresh');
+        return client(cfg);
+      } catch {
+        return Promise.reject(error);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 function apiUnreachableMessage(): string {
   const url = base();
   return (
-    `Server not reachable at ${url} (connection refused). Open a terminal, run: cd backend && npm run dev — ` +
-    `MongoDB must connect (MONGO_URI in backend/.env + Atlas IP allowlist). API default port is 5001 (see backend/.env PORT).`
+    `Server not reachable at ${url} (connection refused). Run the API (cd backend && npm run dev). ` +
+    `Set NEXT_PUBLIC_API_URL to match the API origin; cookies require correct CORS (FRONTEND_URL on the server).`
   );
+}
+
+function formatApiError(data: unknown, fallback: string): string {
+  if (!data || typeof data !== 'object') return fallback;
+  const d = data as {
+    error?: string;
+    details?: { msg?: string; path?: string }[];
+  };
+  if (d.error === 'Validation failed' && Array.isArray(d.details) && d.details.length > 0) {
+    const parts = d.details.map((x) => x.msg || `${x.path}: invalid`).filter(Boolean);
+    if (parts.length) return parts.join(' ');
+  }
+  if (d.error) return d.error;
+  return fallback;
 }
 
 async function request<T>(
   path: string,
   options: {
-    method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     body?: unknown;
-    token?: string | null;
     params?: Record<string, string | number>;
   } = {}
 ): Promise<T> {
-  const { method = 'GET', body, token, params } = options;
+  const { method = 'GET', body, params } = options;
   try {
-    const res = await axios({
-      url: `${base()}${path}`,
+    const res = await client({
+      url: path,
       method,
       data: body !== undefined ? body : undefined,
       params,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
       validateStatus: () => true,
     });
-
     const data = res.data as T & { error?: string };
     if (res.status >= 200 && res.status < 300) {
       return data as T;
     }
-    const msg = data?.error || res.statusText || 'Request failed';
+    const msg = formatApiError(data, res.statusText || 'Request failed');
     throw new Error(msg);
   } catch (e) {
     if (axios.isAxiosError(e)) {
-      const ax = e as AxiosError<{ error?: string }>;
+      const ax = e as AxiosError<{ error?: string; details?: { msg?: string }[] }>;
       if (!ax.response) {
         throw new Error(apiUnreachableMessage());
       }
-      const msg = ax.response.data?.error || ax.message;
+      const msg = formatApiError(ax.response.data, ax.message);
       throw new Error(msg);
     }
     throw e;
@@ -62,69 +115,62 @@ async function request<T>(
 
 export const api = {
   register: (body: { email: string; password: string; walletAddress?: string }) =>
-    request<{ user: SafeUser; token: string }>('/auth/register', {
-      method: 'POST',
-      body,
-    }),
+    request<{ user: SafeUser }>('/auth/register', { method: 'POST', body }),
   login: (body: { email: string; password: string }) =>
-    request<{ user: SafeUser; token: string }>('/auth/login', {
-      method: 'POST',
-      body,
-    }),
-  me: (token: string) => request<{ user: SafeUser }>('/auth/me', { token }),
-  updateProfile: (token: string, walletAddress: string) =>
+    request<{ user: SafeUser }>('/auth/login', { method: 'POST', body }),
+  logout: () => request<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
+  refresh: () => request<{ user: SafeUser }>('/auth/refresh', { method: 'POST' }),
+  me: () => request<{ user: SafeUser }>('/auth/me'),
+  putProfile: (
+    body: { fullName?: string; walletAddress?: string; phone?: string; avatarUrl?: string }
+  ) => request<{ user: SafeUser; message: string }>('/user/profile', { method: 'PUT', body }),
+  updateProfile: (walletAddress: string) =>
     request<{ user: SafeUser }>('/auth/profile', {
       method: 'PATCH',
-      token,
       body: { walletAddress },
     }),
-  balance: (token: string) =>
-    request<{ balance: string; walletAddress: string }>('/wallet/balance', { token }),
-  depositInfo: (token: string) =>
-    request<{ depositAddress: string; contractAddress: string; network: string }>(
-      '/wallet/deposit-info',
-      { token }
+  balance: () =>
+    request<{ balance: string; walletAddress: string; ledgerLocked?: string; spendable?: string }>(
+      '/wallet/balance'
     ),
-  transfer: (
-    token: string,
-    body: { amount: string; toEmail?: string; toWalletAddress?: string }
-  ) =>
-    request<{ ok: boolean }>('/wallet/transfer', {
-      method: 'POST',
-      token,
-      body,
-    }),
-  deposit: (token: string, txHash: string) =>
-    request<{ ok: boolean; balance: string }>('/wallet/deposit', {
-      method: 'POST',
-      token,
-      body: { txHash },
-    }),
-  withdraw: (
-    token: string,
-    body: {
-      amount: string;
-      payoutMethod?: 'upi' | 'bank' | 'biznext';
-      payoutDetails?: string;
-    }
-  ) =>
+  depositInfo: () =>
+    request<{
+      depositAddress: string;
+      contractAddress: string;
+      network: string;
+      paymentRails?: PaymentRails | null;
+    }>('/wallet/deposit-info'),
+  transfer: (body: { amount: string; toEmail?: string; toWalletAddress?: string }) =>
+    request<{ ok: boolean }>('/wallet/transfer', { method: 'POST', body }),
+  depositRequest: (body: {
+    amount: string;
+    paymentMethod: 'upi' | 'bank_transfer' | 'card' | 'other';
+    paymentReference?: string;
+  }) =>
     request<{
       ok: boolean;
-      balance: string;
-      txHash?: string;
-      status?: string;
-      message?: string;
-    }>('/wallet/withdraw', {
-      method: 'POST',
-      token,
-      body,
-    }),
-  transactions: (token: string, limit?: number) =>
-    request<{ transactions: Record<string, unknown>[] }>('/wallet/transactions', {
-      token,
+      message: string;
+      request: { id: string; type: string; amount: string; status: string; createdAt: string };
+    }>('/wallet/deposit-request', { method: 'POST', body }),
+  withdrawRequest: (body: {
+    amount: string;
+    withdrawalMethod: 'upi' | 'bank_transfer' | 'card' | 'other';
+    payoutDetails: string;
+  }) =>
+    request<{
+      ok: boolean;
+      message: string;
+      request: { id: string; type: string; amount: string; status: string; createdAt: string };
+    }>('/wallet/withdraw-request', { method: 'POST', body }),
+  walletRequests: (limit?: number) =>
+    request<{ requests: Record<string, unknown>[] }>('/wallet/requests', {
       params: { limit: limit ?? 50 },
     }),
-  adminStats: (token: string) =>
+  transactions: (limit?: number) =>
+    request<{ transactions: Record<string, unknown>[] }>('/wallet/transactions', {
+      params: { limit: limit ?? 50 },
+    }),
+  adminStats: () =>
     request<{
       totalUsers: number;
       totalInternalLedger: string;
@@ -132,45 +178,39 @@ export const api = {
       totalOnChainSupply: string | null;
       trackedMintSum?: string;
       trackedBurnSum?: string;
-    }>('/admin/stats', { token }),
-  adminUsers: (token: string, page = 1) =>
-    request<{ users: SafeUser[]; total: number }>('/admin/users', {
-      token,
-      params: { page },
-    }),
-  adminTransactions: (token: string, page = 1) =>
+      circulatingSupply?: string;
+      reserveTokenCap?: string;
+      reserveINR?: string;
+    }>('/admin/stats'),
+  adminUsers: (page = 1) =>
+    request<{ users: SafeUser[]; total: number }>('/admin/users', { params: { page } }),
+  adminTransactions: (page = 1) =>
     request<{ transactions: Record<string, unknown>[]; total: number }>('/admin/transactions', {
-      token,
       params: { page },
     }),
-  adminActions: (token: string) =>
-    request<{ actions: Record<string, unknown>[] }>('/admin/actions', { token }),
-  adminMint: (
-    token: string,
-    body: { recipientAddress: string; amount: string; creditUserId?: string }
-  ) =>
-    request<{ ok: boolean; txHash: string }>('/admin/mint', {
-      method: 'POST',
-      token,
-      body,
-    }),
-  adminBurn: (token: string, amount: string) =>
-    request<{ ok: boolean; txHash: string }>('/admin/burn', {
-      method: 'POST',
-      token,
-      body: { amount },
-    }),
-  adminAdjust: (token: string, body: { userId: string; amountDelta: string; note?: string }) =>
+  adminActions: (limit = 50) =>
+    request<{ actions: Record<string, unknown>[] }>('/admin/actions', { params: { limit } }),
+  adminMint: (body: { recipientAddress: string; amount: string; creditUserId?: string }) =>
+    request<{ ok: boolean; txHash: string }>('/admin/mint', { method: 'POST', body }),
+  adminBurn: (amount: string) =>
+    request<{ ok: boolean; txHash: string }>('/admin/burn', { method: 'POST', body: { amount } }),
+  adminAdjust: (body: { userId: string; amountDelta: string; note?: string }) =>
     request<{ ok: boolean; userId?: string; balance: string }>('/admin/adjust', {
       method: 'POST',
-      token,
       body,
     }),
-  /** Alias of POST /admin/adjust (same validators and handler). */
-  adminAdjustBalance: (token: string, body: { userId: string; amountDelta: string; note?: string }) =>
+  adminAdjustBalance: (body: { userId: string; amountDelta: string; note?: string }) =>
     request<{ ok: boolean; userId?: string; balance: string }>('/admin/adjust-balance', {
       method: 'POST',
-      token,
       body,
     }),
+  adminListRequests: (status: 'queue' | 'all' | 'pending' | 'processing' | 'approved' | 'rejected' | string = 'queue') =>
+    request<{ requests: Record<string, unknown>[] }>('/admin/requests', { params: { status } }),
+  adminApproveRequest: (requestId: string, adminNote?: string) =>
+    request<{ ok: boolean; type?: string; txHash?: string; balance?: string }>('/admin/request/approve', {
+      method: 'POST',
+      body: { requestId, adminNote },
+    }),
+  adminRejectRequest: (body: { requestId: string; reason?: string; adminNote?: string }) =>
+    request<{ ok: boolean; status: string }>('/admin/request/reject', { method: 'POST', body }),
 };

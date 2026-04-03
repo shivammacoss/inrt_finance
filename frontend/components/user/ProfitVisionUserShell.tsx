@@ -1,13 +1,16 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import {
   LayoutDashboard,
   ArrowDownToLine,
-  Wallet,
+  ArrowUpCircle,
   Send,
   History,
+  ClipboardList,
   Menu,
   X,
   Sun,
@@ -16,40 +19,73 @@ import {
   PanelLeftClose,
   PanelLeft,
   Shield,
+  UserCircle,
+  Wallet,
 } from 'lucide-react';
 import { PV_THEME_STORAGE_KEY } from '@/lib/demo-login';
 
-export type UserNavId = 'overview' | 'receive' | 'wallet' | 'send' | 'history';
+export type UserNavId =
+  | 'overview'
+  | 'wallet'
+  | 'profile'
+  | 'deposit'
+  | 'withdraw'
+  | 'send'
+  | 'requests'
+  | 'history';
 
-const NAV: { id: UserNavId; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'receive', label: 'Receive / Deposit', icon: ArrowDownToLine },
-  { id: 'wallet', label: 'Wallet & withdraw', icon: Wallet },
-  { id: 'send', label: 'Send INRT', icon: Send },
-  { id: 'history', label: 'History', icon: History },
+type NavItem = {
+  id: UserNavId;
+  label: string;
+  icon: typeof LayoutDashboard;
+  href: string;
+};
+
+const NAV: NavItem[] = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
+  { id: 'wallet', label: 'Wallet', icon: Wallet, href: '/dashboard/wallet' },
+  { id: 'deposit', label: 'Deposit', icon: ArrowDownToLine, href: '/dashboard/deposit' },
+  { id: 'withdraw', label: 'Withdraw', icon: ArrowUpCircle, href: '/dashboard/withdraw' },
+  { id: 'send', label: 'Send', icon: Send, href: '/dashboard/send' },
+  { id: 'requests', label: 'My requests', icon: ClipboardList, href: '/dashboard/requests' },
+  { id: 'history', label: 'History', icon: History, href: '/dashboard/history' },
+  { id: 'profile', label: 'Profile', icon: UserCircle, href: '/dashboard/profile' },
 ];
+
+function isNavActive(pathname: string, item: NavItem): boolean {
+  if (item.id === 'overview') {
+    return pathname === '/dashboard' || pathname === '/dashboard/';
+  }
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
 
 type Props = {
   title?: string;
   subtitle?: string;
   userEmail?: string;
+  userDisplayName?: string;
+  userPhone?: string;
+  userAvatarUrl?: string;
   isAdmin?: boolean;
-  activeNav: UserNavId;
-  onNavigate: (id: UserNavId) => void;
   onLogout: () => void;
   children: React.ReactNode;
+  /** e.g. `inrtCbShell` — Coinbase-like nav + spacing while keeping INRT tokens */
+  shellClassName?: string;
 };
 
 export function ProfitVisionUserShell({
   title = 'Wallet',
   subtitle = 'INRT dashboard',
   userEmail,
+  userDisplayName,
+  userPhone,
+  userAvatarUrl,
   isAdmin,
-  activeNav,
-  onNavigate,
   onLogout,
   children,
+  shellClassName,
 }: Props) {
+  const pathname = usePathname();
   const [dark, setDark] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -86,14 +122,11 @@ export function ProfitVisionUserShell({
     };
   }, [dark]);
 
-  const scrollTo = (id: UserNavId) => {
-    onNavigate(id);
-    setMobileOpen(false);
-    document.getElementById(`user-section-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  const navBtnClass = (item: NavItem) =>
+    `adminPvNavBtn adminPvNavLink ${isNavActive(pathname, item) ? 'active' : ''}`.trim();
 
   return (
-    <div className={`adminPvRoot ${dark ? 'dark' : 'light'}`}>
+    <div className={['adminPvRoot', dark ? 'dark' : 'light', shellClassName || ''].filter(Boolean).join(' ')}>
       {mobileOpen && (
         <div
           className="adminPvOverlay lg:hidden"
@@ -107,12 +140,16 @@ export function ProfitVisionUserShell({
       >
         <div className="adminPvLogoRow">
           <div className="flex items-center gap-2 min-w-0">
-            <div
-              className="adminPvLogoMark"
-              style={{ background: 'linear-gradient(135deg, #00d4aa, #0d9488)' }}
-            >
-              IN
-            </div>
+            <Link href="/dashboard" className="adminPvLogoImgLink" title="INRT" aria-label="INRT — Overview">
+              <Image
+                src="/inrt-logo.png"
+                alt="INRT"
+                width={40}
+                height={40}
+                className="adminPvLogoImg"
+                priority
+              />
+            </Link>
             {!collapsed && (
               <div className="min-w-0">
                 <div className="font-semibold text-sm truncate" style={{ color: 'var(--pv-text)' }}>
@@ -148,16 +185,16 @@ export function ProfitVisionUserShell({
 
         <nav className="adminPvNav" aria-label="Wallet sections">
           {NAV.map((item) => (
-            <button
+            <Link
               key={item.id}
-              type="button"
-              className={`adminPvNavBtn ${activeNav === item.id ? 'active' : ''}`}
+              href={item.href}
+              className={navBtnClass(item)}
               title={collapsed ? item.label : undefined}
-              onClick={() => scrollTo(item.id)}
+              onClick={() => setMobileOpen(false)}
             >
               <item.icon size={18} className="flex-shrink-0" />
               {!collapsed && <span className="truncate">{item.label}</span>}
-            </button>
+            </Link>
           ))}
         </nav>
 
@@ -209,22 +246,31 @@ export function ProfitVisionUserShell({
               {subtitle ? <p>{subtitle}</p> : null}
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {userEmail ? (
-              <span
-                className="hidden sm:inline text-sm truncate max-w-[220px]"
-                style={{ color: 'var(--pv-muted)' }}
-              >
-                {userEmail}
-              </span>
-            ) : null}
+          <div className="flex items-center gap-2 flex-shrink-0 inrtHeaderUserRow">
+            {userAvatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={userAvatarUrl} alt="" className="inrtHeaderAvatar" width={36} height={36} />
+            ) : (
+              <div className="inrtHeaderAvatar inrtHeaderAvatarPlaceholder" aria-hidden>
+                {(userDisplayName || userEmail || '?').slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <div className="hidden sm:flex flex-col min-w-0 items-end text-right">
+              {userDisplayName ? (
+                <span className="inrtHeaderDisplayName truncate max-w-[200px]">{userDisplayName}</span>
+              ) : null}
+              {userPhone ? (
+                <span className="inrtHeaderPhone truncate max-w-[200px]">{userPhone}</span>
+              ) : null}
+              {userEmail ? (
+                <span className="inrtHeaderEmail truncate max-w-[220px]">{userEmail}</span>
+              ) : null}
+            </div>
           </div>
         </header>
 
-        <div className="adminPvContent">{children}</div>
+        <div className="adminPvContent inrtDashPage">{children}</div>
       </main>
     </div>
   );
 }
-
-export const USER_NAV_IDS: UserNavId[] = ['overview', 'receive', 'wallet', 'send', 'history'];

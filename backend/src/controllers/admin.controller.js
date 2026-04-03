@@ -2,7 +2,12 @@ const { validationResult, body, query } = require('express-validator');
 const adminService = require('../services/admin.service');
 
 const mintValidators = [
-  body('recipientAddress').trim().matches(/^0x[a-fA-F0-9]{40}$/),
+  body('recipientAddress')
+    .trim()
+    .matches(/^0x[a-fA-F0-9]{40}$/)
+    .withMessage(
+      'Invalid address: use a BSC wallet like 0x + 40 hex characters (example: 0x1234…abcd). Random text will not work.'
+    ),
   body('amount').notEmpty(),
   body('creditUserId').optional().isMongoId(),
 ];
@@ -13,6 +18,17 @@ const adjustValidators = [
   body('userId').isMongoId(),
   body('amountDelta').notEmpty(),
   body('note').optional().isString().isLength({ max: 500 }),
+];
+
+const requestIdValidators = [
+  body('requestId').isMongoId().withMessage('Valid requestId required'),
+  body('adminNote').optional().isString().isLength({ max: 500 }),
+];
+
+const rejectRequestValidators = [
+  body('requestId').isMongoId(),
+  body('reason').optional().isString().isLength({ max: 500 }),
+  body('adminNote').optional().isString().isLength({ max: 500 }),
 ];
 
 async function stats(req, res, next) {
@@ -100,6 +116,53 @@ async function adjust(req, res, next) {
   }
 }
 
+async function listRequests(req, res, next) {
+  try {
+    const status = req.query.status ? String(req.query.status) : 'queue';
+    const data = await adminService.listRequests({ status });
+    res.json(data);
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function approveRequest(req, res, next) {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    }
+    const result = await adminService.approveRequest(
+      req.user,
+      req.body.requestId,
+      req.app.locals.env,
+      req.body.adminNote
+    );
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function rejectRequest(req, res, next) {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    }
+    const result = await adminService.rejectRequest(
+      req.user,
+      req.body.requestId,
+      req.body.reason,
+      req.app.locals.env,
+      req.body.adminNote
+    );
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
+}
+
 module.exports = {
   stats,
   users,
@@ -108,7 +171,12 @@ module.exports = {
   mint,
   burn,
   adjust,
+  listRequests,
+  approveRequest,
+  rejectRequest,
   mintValidators,
   burnValidators,
   adjustValidators,
+  requestIdValidators,
+  rejectRequestValidators,
 };

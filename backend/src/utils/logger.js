@@ -2,8 +2,20 @@ const winston = require('winston');
 
 const { combine, timestamp, printf, colorize, errors } = winston.format;
 
+function redactForLog(obj) {
+  try {
+    const s = JSON.stringify(obj);
+    if (/private[_-]?key|0x[a-fA-F0-9]{64}/i.test(s)) {
+      return JSON.stringify({ redacted: true });
+    }
+    return s;
+  } catch {
+    return '{}';
+  }
+}
+
 const logFormat = printf(({ level, message, timestamp, stack, ...meta }) => {
-  const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
+  const metaStr = Object.keys(meta).length ? ` ${redactForLog(meta)}` : '';
   return `${timestamp} [${level}] ${stack || message}${metaStr}`;
 });
 

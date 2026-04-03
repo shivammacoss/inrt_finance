@@ -5,7 +5,7 @@ const adminActionSchema = new mongoose.Schema(
     admin: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     action: {
       type: String,
-      enum: ['mint', 'burn', 'balance_adjustment'],
+      enum: ['mint', 'burn', 'balance_adjustment', 'request_approve', 'request_reject'],
       required: true,
     },
     targetUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

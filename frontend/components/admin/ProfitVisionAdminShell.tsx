@@ -1,6 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import {
   LayoutDashboard,
@@ -8,6 +10,7 @@ import {
   SlidersHorizontal,
   Users,
   ListOrdered,
+  Inbox,
   Menu,
   X,
   Sun,
@@ -18,36 +21,47 @@ import {
 } from 'lucide-react';
 import { PV_THEME_STORAGE_KEY } from '@/lib/demo-login';
 
-export type AdminNavId = 'overview' | 'mint-burn' | 'adjust' | 'users' | 'ledger';
+export type AdminNavId = 'overview' | 'requests' | 'mint-burn' | 'adjust' | 'users' | 'ledger';
 
-const NAV: { id: AdminNavId; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'mint-burn', label: 'Mint / Burn', icon: Coins },
-  { id: 'adjust', label: 'Balance adjust', icon: SlidersHorizontal },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'ledger', label: 'Transactions', icon: ListOrdered },
+type NavItem = {
+  id: AdminNavId;
+  label: string;
+  icon: typeof LayoutDashboard;
+  href: string;
+};
+
+const NAV: NavItem[] = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/admin' },
+  { id: 'requests', label: 'Requests', icon: Inbox, href: '/admin/requests' },
+  { id: 'mint-burn', label: 'Mint / Burn', icon: Coins, href: '/admin/mint-burn' },
+  { id: 'adjust', label: 'Balance adjust', icon: SlidersHorizontal, href: '/admin/adjust' },
+  { id: 'users', label: 'Users', icon: Users, href: '/admin/users' },
+  { id: 'ledger', label: 'Transactions', icon: ListOrdered, href: '/admin/ledger' },
 ];
+
+function isAdminNavActive(pathname: string, item: NavItem): boolean {
+  if (item.id === 'overview') {
+    return pathname === '/admin' || pathname === '/admin/';
+  }
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
 
 type Props = {
   title?: string;
   subtitle?: string;
   userEmail?: string;
-  activeNav: AdminNavId;
-  onNavigate: (id: AdminNavId) => void;
   onLogout: () => void;
   children: React.ReactNode;
 };
-
 
 export function ProfitVisionAdminShell({
   title = 'Admin Dashboard',
   subtitle = 'INRT operations',
   userEmail,
-  activeNav,
-  onNavigate,
   onLogout,
   children,
 }: Props) {
+  const pathname = usePathname();
   const [dark, setDark] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -84,13 +98,6 @@ export function ProfitVisionAdminShell({
     };
   }, [dark]);
 
-  const scrollTo = (id: AdminNavId) => {
-    onNavigate(id);
-    setMobileOpen(false);
-    const el = document.getElementById(`admin-section-${id}`);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   return (
     <div className={`adminPvRoot ${dark ? 'dark' : 'light'}`}>
       {mobileOpen && (
@@ -106,7 +113,16 @@ export function ProfitVisionAdminShell({
       >
         <div className="adminPvLogoRow">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="adminPvLogoMark">IN</div>
+            <Link href="/admin" className="adminPvLogoImgLink" title="INRT Admin" aria-label="INRT — Admin overview">
+              <Image
+                src="/inrt-logo.png"
+                alt="INRT"
+                width={40}
+                height={40}
+                className="adminPvLogoImg"
+                priority
+              />
+            </Link>
             {!collapsed && (
               <div className="min-w-0">
                 <div className="font-semibold text-sm truncate" style={{ color: 'var(--pv-text)' }}>
@@ -142,16 +158,16 @@ export function ProfitVisionAdminShell({
 
         <nav className="adminPvNav" aria-label="Admin sections">
           {NAV.map((item) => (
-            <button
+            <Link
               key={item.id}
-              type="button"
-              className={`adminPvNavBtn ${activeNav === item.id ? 'active' : ''}`}
+              href={item.href}
+              className={`adminPvNavBtn adminPvNavLink ${isAdminNavActive(pathname, item) ? 'active' : ''}`.trim()}
               title={collapsed ? item.label : undefined}
-              onClick={() => scrollTo(item.id)}
+              onClick={() => setMobileOpen(false)}
             >
               <item.icon size={18} className="flex-shrink-0" />
               {!collapsed && <span className="truncate">{item.label}</span>}
-            </button>
+            </Link>
           ))}
         </nav>
 
@@ -205,7 +221,7 @@ export function ProfitVisionAdminShell({
           </div>
         </header>
 
-        <div className="adminPvContent">{children}</div>
+        <div className="adminPvContent adminInrtPage">{children}</div>
       </main>
     </div>
   );

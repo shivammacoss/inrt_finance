@@ -1,10 +1,14 @@
 const { ethers } = require('ethers');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const AdminAction = require('../models/AdminAction');
 const PlatformSettings = require('../models/PlatformSettings');
+const Request = require('../models/Request');
 const blockchain = require('./blockchain.service');
 const walletService = require('./wallet.service');
+const reserveService = require('./reserve.service');
+const withdrawLimits = require('./withdrawLimits.service');
 
 async function getOrCreateSettings() {
   let s = await PlatformSettings.findOne({ key: 'default' });
@@ -83,6 +87,7 @@ async function mint(adminUser, { recipientAddress, amount, creditUserId }, env) 
     throw e;
   }
 
+  const dec = await blockchain.getDecimals(env);
   let targetUser = null;
   if (creditUserId) {
     targetUser = await User.findById(creditUserId);
@@ -91,7 +96,7 @@ async function mint(adminUser, { recipientAddress, amount, creditUserId }, env) 
       err.status = 404;
       throw err;
     }
-    const dec = await blockchain.getDecimals(env);
+    await reserveService.assertCirculatingWithinCap(amount, { getDecimals: () => Promise.resolve(dec) });
     targetUser.balance = walletService.addDecimalStrings(targetUser.balance, amount, dec);
     await targetUser.save();
   } else {
@@ -100,13 +105,12 @@ async function mint(adminUser, { recipientAddress, amount, creditUserId }, env) 
       walletAddress: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
     });
     if (targetUser) {
-      const dec = await blockchain.getDecimals(env);
+      await reserveService.assertCirculatingWithinCap(amount, { getDecimals: () => Promise.resolve(dec) });
       targetUser.balance = walletService.addDecimalStrings(targetUser.balance, amount, dec);
       await targetUser.save();
     }
   }
 
-  const dec = await blockchain.getDecimals(env);
   const settings = await getOrCreateSettings();
   settings.trackedMintSum = walletService.addDecimalStrings(settings.trackedMintSum, amount, dec);
   await settings.save();
@@ -202,6 +206,7 @@ async function adjustBalance(adminUser, { userId, amountDelta, note }, env) {
   if (isNeg) {
     newBal = walletService.subDecimalStrings(user.balance, abs, dec);
   } else {
+    await reserveService.assertCirculatingWithinCap(abs, { getDecimals: () => Promise.resolve(dec) });
     newBal = walletService.addDecimalStrings(user.balance, abs, dec);
   }
   user.balance = newBal;
@@ -228,42 +233,344 @@ async function adjustBalance(adminUser, { userId, amountDelta, note }, env) {
 }
 
 async function getStats(env) {
-  const totalUsers = await User.countDocuments();
-  const users = await User.find().select('balance').lean();
-  const dec = await blockchain.getDecimals(env);
-  let totalInternal = '0';
-  for (const u of users) {
-    totalInternal = walletService.addDecimalStrings(totalInternal, u.balance || '0', dec);
-  }
-
-  let platformOnChain = '0';
-  let totalOnChainSupply = null;
-  try {
-    if (env.privateKey) {
-      const platform = env.depositAddress || blockchain.platformAddress(env.privateKey);
-      platformOnChain = await blockchain.getOnChainBalance(env, platform);
+  const sumInternalLedger = async () => {
+    try {
+      const agg = await User.aggregate([
+        {
+          $project: {
+            amt: {
+              $convert: {
+                input: { $ifNull: ['$balance', '0'] },
+                to: 'decimal',
+                onError: 0,
+                onNull: 0,
+              },
+            },
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$amt' } } },
+      ]).exec();
+      const t = agg[0]?.total;
+      if (t == null) return '0';
+      return typeof t === 'object' && t !== null && typeof t.toString === 'function' ? t.toString() : String(t);
+    } catch {
+      const dec = await blockchain.getDecimals(env);
+      const users = await User.find().select('balance').lean();
+      let totalInternal = '0';
+      for (const u of users) {
+        totalInternal = walletService.addDecimalStrings(totalInternal, u.balance || '0', dec);
+      }
+      return totalInternal;
     }
-    const contract = env.contractAddress;
-    const { Contract, JsonRpcProvider } = ethers;
-    const p = new JsonRpcProvider(env.rpcUrl);
-    const ERC20 = ['function totalSupply() view returns (uint256)', 'function decimals() view returns (uint8)'];
-    const c = new Contract(contract, ERC20, p);
-    const [raw, d] = await Promise.all([c.totalSupply(), c.decimals()]);
-    totalOnChainSupply = ethers.formatUnits(raw, Number(d));
-  } catch {
-    totalOnChainSupply = null;
-  }
+  };
 
-  const settings = await PlatformSettings.findOne({ key: 'default' }).lean();
+  const chainMetrics = async () => {
+    let platformOnChain = '0';
+    let totalOnChainSupply = null;
+    try {
+      let platform = env.depositAddress || null;
+      if (!platform && env.privateKey) {
+        try {
+          platform = blockchain.platformAddress(env.privateKey);
+        } catch {
+          platform = null;
+        }
+      }
+      const [bal, supply] = await Promise.all([
+        platform && ethers.isAddress(platform)
+          ? blockchain.getOnChainBalance(env, ethers.getAddress(platform)).catch(() => '0')
+          : Promise.resolve('0'),
+        blockchain.getTotalSupplyHuman(env).catch(() => null),
+      ]);
+      platformOnChain = typeof bal === 'string' ? bal : '0';
+      totalOnChainSupply = supply;
+    } catch {
+      totalOnChainSupply = null;
+    }
+    return { platformOnChain, totalOnChainSupply };
+  };
+
+  const [totalUsers, totalInternal, settings, chain] = await Promise.all([
+    User.countDocuments(),
+    sumInternalLedger(),
+    PlatformSettings.findOne({ key: 'default' }).lean(),
+    chainMetrics(),
+  ]);
+
+  const reserve = await reserveService.getReserveSnapshot({ getDecimals: () => blockchain.getDecimals(env) });
 
   return {
     totalUsers,
     totalInternalLedger: totalInternal,
-    platformWalletOnChain: platformOnChain,
-    totalOnChainSupply,
+    platformWalletOnChain: chain.platformOnChain,
+    totalOnChainSupply: chain.totalOnChainSupply,
     trackedMintSum: settings?.trackedMintSum || '0',
     trackedBurnSum: settings?.trackedBurnSum || '0',
+    circulatingSupply: reserve.circulatingSupply,
+    reserveTokenCap: reserve.reserveTokenCap,
+    reserveINR: reserve.reserveINR,
   };
+}
+
+/**
+ * Admin queue: pending + in-flight processing unless filtered.
+ */
+async function listRequests({ status = 'queue' } = {}) {
+  const filter = {};
+  if (status === 'queue' || status === 'pending') {
+    filter.status = { $in: ['pending', 'processing'] };
+  } else if (status === 'all') {
+    /* no filter */
+  } else if (['processing', 'approved', 'rejected'].includes(status)) {
+    filter.status = status;
+  }
+  const lim = status === 'all' ? 250 : 150;
+  const items = await Request.find(filter)
+    .populate('user', 'email walletAddress balance')
+    .populate('reviewedBy', 'email')
+    .sort({ createdAt: 1 })
+    .limit(lim)
+    .lean();
+  return { requests: items };
+}
+
+async function approveRequest(adminUser, requestId, env, adminNote = '') {
+  const reqDoc = await Request.findOneAndUpdate(
+    { _id: requestId, status: 'pending' },
+    { $set: { status: 'processing' } },
+    { new: true }
+  );
+  if (!reqDoc) {
+    const existing = await Request.findById(requestId);
+    if (!existing) {
+      const err = new Error('Request not found');
+      err.status = 404;
+      throw err;
+    }
+    const err = new Error(
+      existing.status === 'approved'
+        ? 'Request already approved'
+        : existing.status === 'rejected'
+          ? 'Request was rejected'
+          : 'Request is being processed or not pending'
+    );
+    err.status = 409;
+    throw err;
+  }
+
+  const user = await User.findById(reqDoc.user);
+  if (!user) {
+    await Request.findByIdAndUpdate(requestId, { $set: { status: 'pending' } });
+    const err = new Error('User not found');
+    err.status = 404;
+    throw err;
+  }
+
+  const dec = await blockchain.getDecimals(env);
+  const noteTrim = String(adminNote || '').trim().slice(0, 500);
+
+  const releasePending = async () => {
+    await Request.findByIdAndUpdate(requestId, { $set: { status: 'pending' } });
+  };
+
+  try {
+    if (reqDoc.type === 'deposit') {
+      let target = null;
+      if (reqDoc.walletAddress && ethers.isAddress(reqDoc.walletAddress)) {
+        target = ethers.getAddress(reqDoc.walletAddress.trim());
+      } else if (user.walletAddress && ethers.isAddress(user.walletAddress)) {
+        target = ethers.getAddress(user.walletAddress.trim());
+      }
+      if (!target) {
+        await releasePending();
+        const err = new Error(
+          'No valid BSC wallet: user must save a wallet on profile or provide walletAddress on the request'
+        );
+        err.status = 400;
+        throw err;
+      }
+
+      await reserveService.assertCirculatingWithinCap(reqDoc.amount, { getDecimals: () => Promise.resolve(dec) });
+      await reserveService.assertBackingAllowsIncrease(reqDoc.amount, { getDecimals: () => Promise.resolve(dec) });
+
+      const { txHash } = await blockchain.mintTokens(env, target, reqDoc.amount);
+      user.balance = walletService.addDecimalStrings(user.balance, reqDoc.amount, dec);
+      await user.save();
+
+      const settings = await getOrCreateSettings();
+      settings.trackedMintSum = walletService.addDecimalStrings(settings.trackedMintSum, reqDoc.amount, dec);
+      await settings.save();
+
+      reqDoc.status = 'approved';
+      reqDoc.reviewedBy = adminUser._id;
+      reqDoc.adminNote = noteTrim;
+      await reqDoc.save();
+
+      await Transaction.create({
+        user: user._id,
+        type: 'deposit',
+        amount: reqDoc.amount,
+        status: 'completed',
+        txHash,
+        note: 'Deposit request approved',
+        metadata: { requestId: reqDoc._id.toString(), mintedTo: target },
+      });
+
+      await AdminAction.create({
+        admin: adminUser._id,
+        action: 'request_approve',
+        targetUser: user._id,
+        amount: reqDoc.amount,
+        txHash,
+        note: noteTrim || 'Deposit approved',
+        metadata: { requestId: reqDoc._id.toString(), type: 'deposit' },
+      });
+
+      return { ok: true, type: 'deposit', txHash, balance: user.balance };
+    }
+
+    if (reqDoc.type === 'withdraw') {
+      await withdrawLimits.assertUserDailyWithdraw(user, reqDoc.amount, dec, env);
+      await withdrawLimits.assertGlobalDailyWithdraw(reqDoc.amount, dec, env);
+
+      const oldBal = user.balance;
+      const oldLocked = user.ledgerLocked || '0';
+      let newLocked;
+      try {
+        newLocked = walletService.subDecimalStrings(oldLocked, reqDoc.amount, dec);
+      } catch {
+        await releasePending();
+        const err = new Error('Locked amount does not cover this withdrawal');
+        err.status = 409;
+        throw err;
+      }
+      let newBal;
+      try {
+        newBal = walletService.subDecimalStrings(user.balance, reqDoc.amount, dec);
+      } catch (e) {
+        await releasePending();
+        throw e;
+      }
+      user.ledgerLocked = newLocked;
+      user.balance = newBal;
+      await user.save();
+
+      let txHash = '';
+      try {
+        const out = await blockchain.burnTokens(env, reqDoc.amount);
+        txHash = out.txHash;
+      } catch (e) {
+        user.balance = oldBal;
+        user.ledgerLocked = oldLocked;
+        await user.save();
+        await releasePending();
+        throw e;
+      }
+
+      const settings = await getOrCreateSettings();
+      settings.trackedBurnSum = walletService.addDecimalStrings(settings.trackedBurnSum, reqDoc.amount, dec);
+      await settings.save();
+
+      await withdrawLimits.recordUserDailyWithdraw(user._id, reqDoc.amount, dec);
+      await withdrawLimits.recordGlobalDailyWithdraw(reqDoc.amount, dec);
+
+      reqDoc.status = 'approved';
+      reqDoc.reviewedBy = adminUser._id;
+      reqDoc.adminNote = noteTrim;
+      await reqDoc.save();
+
+      await Transaction.create({
+        user: user._id,
+        type: 'withdraw',
+        amount: reqDoc.amount,
+        status: 'completed',
+        txHash,
+        note: 'Withdraw request approved (ledger + on-chain burn)',
+        metadata: { requestId: reqDoc._id.toString() },
+      });
+
+      await AdminAction.create({
+        admin: adminUser._id,
+        action: 'request_approve',
+        targetUser: user._id,
+        amount: reqDoc.amount,
+        txHash,
+        note: noteTrim || 'Withdraw approved',
+        metadata: { requestId: reqDoc._id.toString(), type: 'withdraw' },
+      });
+
+      return { ok: true, type: 'withdraw', txHash, balance: user.balance };
+    }
+
+    await releasePending();
+    const err = new Error('Unknown request type');
+    err.status = 400;
+    throw err;
+  } catch (e) {
+    if (!e.status || e.status >= 500) {
+      await releasePending().catch(() => {});
+    }
+    throw e;
+  }
+}
+
+async function rejectRequest(adminUser, requestId, reason = '', env, adminNote = '') {
+  const session = await mongoose.startSession();
+  let doc;
+  try {
+    doc = await session.withTransaction(async () => {
+      const updated = await Request.findOneAndUpdate(
+        { _id: requestId, status: { $in: ['pending', 'processing'] } },
+        {
+          $set: {
+            status: 'rejected',
+            reviewedBy: adminUser._id,
+            rejectReason: String(reason || '').trim().slice(0, 500),
+            adminNote: String(adminNote || '').trim().slice(0, 500),
+          },
+        },
+        { new: true, session }
+      );
+      if (!updated) {
+        const existing = await Request.findById(requestId).session(session);
+        if (!existing) {
+          const err = new Error('Request not found');
+          err.status = 404;
+          throw err;
+        }
+        const err = new Error(
+          existing.status === 'approved'
+            ? 'Cannot reject an approved request'
+            : 'Request cannot be rejected'
+        );
+        err.status = 409;
+        throw err;
+      }
+      if (updated.type === 'withdraw') {
+        const dec = await blockchain.getDecimals(env);
+        const u = await User.findById(updated.user).session(session);
+        if (u) {
+          const locked = u.ledgerLocked || '0';
+          u.ledgerLocked = walletService.subDecimalStrings(locked, updated.amount, dec);
+          await u.save({ session });
+        }
+      }
+      return updated;
+    });
+  } finally {
+    await session.endSession();
+  }
+
+  await AdminAction.create({
+    admin: adminUser._id,
+    action: 'request_reject',
+    targetUser: doc.user,
+    amount: doc.amount,
+    note: String(reason || '').trim().slice(0, 500) || 'Rejected',
+    metadata: { requestId: doc._id.toString(), adminNote: doc.adminNote },
+  });
+
+  return { ok: true, status: 'rejected' };
 }
 
 module.exports = {
@@ -274,4 +581,7 @@ module.exports = {
   burn,
   adjustBalance,
   getStats,
+  listRequests,
+  approveRequest,
+  rejectRequest,
 };

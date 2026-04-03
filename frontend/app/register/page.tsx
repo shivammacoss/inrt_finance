@@ -20,12 +20,12 @@ export default function RegisterPage() {
     setError('');
     setBusy(true);
     try {
-      const { user, token } = await api.register({
+      const { user } = await api.register({
         email,
         password,
         walletAddress: walletAddress.trim() || undefined,
       });
-      setSession(token, user);
+      setSession(null, user);
       router.push(user.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');

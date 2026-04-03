@@ -2,13 +2,21 @@ const jwt = require('jsonwebtoken');
 const { loadEnv } = require('../config/env');
 const User = require('../models/User');
 const logger = require('../utils/logger');
+const { ACCESS_NAME } = require('../config/cookies');
 
 const env = loadEnv();
 
+function extractAccessToken(req) {
+  const c = req.cookies?.[ACCESS_NAME];
+  if (c && typeof c === 'string') return c;
+  const header = req.headers.authorization;
+  if (header?.startsWith('Bearer ')) return header.slice(7);
+  return null;
+}
+
 function authMiddleware(required = true) {
   return async (req, res, next) => {
-    const header = req.headers.authorization;
-    const token = header?.startsWith('Bearer ') ? header.slice(7) : null;
+    const token = extractAccessToken(req);
 
     if (!token) {
       if (!required) {
@@ -20,6 +28,9 @@ function authMiddleware(required = true) {
 
     try {
       const payload = jwt.verify(token, env.jwtSecret);
+      if (payload.typ != null && payload.typ !== 'access') {
+        return res.status(401).json({ error: 'Invalid token type' });
+      }
       const user = await User.findById(payload.sub);
       if (!user) {
         return res.status(401).json({ error: 'User not found' });
@@ -34,4 +45,4 @@ function authMiddleware(required = true) {
   };
 }
 
-module.exports = { authMiddleware };
+module.exports = { authMiddleware, extractAccessToken };

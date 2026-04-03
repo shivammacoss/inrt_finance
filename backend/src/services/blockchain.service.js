@@ -14,7 +14,9 @@ let provider;
 let signer;
 let contract;
 let cacheKey = '';
-let decimalsCache = null;
+/** Decimals resolved without signer (RPC read-only); keyed by rpc|contract */
+let decimalsCacheKey = '';
+let decimalsCacheValue = null;
 
 function chainCacheKey(env) {
   return `${env.rpcUrl}|${env.privateKey}|${env.contractAddress}|${env.tokenDecimals ?? 'rpc'}`;
@@ -24,8 +26,9 @@ function resetChainClients() {
   provider = undefined;
   signer = undefined;
   contract = undefined;
-  decimalsCache = null;
   cacheKey = '';
+  decimalsCacheKey = '';
+  decimalsCacheValue = null;
 }
 
 function ensureChainEnv(env) {
@@ -95,21 +98,43 @@ function bindEnv(env) {
   ensureChainEnv(env);
 }
 
+/**
+ * Token decimals for formatting — does NOT require PRIVATE_KEY (uses TOKEN_DECIMALS or RPC read).
+ */
 async function getDecimals(env) {
-  bindEnv(env);
   if (typeof env.tokenDecimals === 'number' && Number.isFinite(env.tokenDecimals)) {
-    decimalsCache = env.tokenDecimals;
-    return decimalsCache;
+    return env.tokenDecimals;
   }
-  if (decimalsCache !== null) return decimalsCache;
-  const c = getContract(env.rpcUrl, env.privateKey, env.contractAddress);
+  const k = `${env.rpcUrl || ''}|${String(env.contractAddress || '').toLowerCase()}`;
+  if (decimalsCacheKey === k && decimalsCacheValue !== null) {
+    return decimalsCacheValue;
+  }
+  if (!env.rpcUrl?.trim() || !env.contractAddress?.trim()) {
+    decimalsCacheKey = k;
+    decimalsCacheValue = 18;
+    return decimalsCacheValue;
+  }
+  if (!ethers.isAddress(env.contractAddress)) {
+    decimalsCacheKey = k;
+    decimalsCacheValue = 18;
+    return decimalsCacheValue;
+  }
   try {
-    decimalsCache = Number(await c.decimals());
+    const p = new ethers.JsonRpcProvider(env.rpcUrl);
+    const c = new ethers.Contract(
+      env.contractAddress,
+      ['function decimals() view returns (uint8)'],
+      p
+    );
+    decimalsCacheValue = Number(await c.decimals());
+    decimalsCacheKey = k;
+    return decimalsCacheValue;
   } catch (e) {
-    logger.warn('decimals() call failed, defaulting to 18', { message: e.message });
-    decimalsCache = 18;
+    logger.warn('decimals() read-only failed, using 18', { message: e.message });
+    decimalsCacheKey = k;
+    decimalsCacheValue = 18;
+    return decimalsCacheValue;
   }
-  return decimalsCache;
 }
 
 function platformAddress(privateKey) {
@@ -194,21 +219,60 @@ async function transferTokens(env, toAddress, amountHuman) {
 }
 
 async function getOnChainBalance(env, address) {
-  bindEnv(env);
   if (!ethers.isAddress(address)) {
     const err = new Error('Invalid address');
     err.status = 400;
     throw err;
   }
+  if (!env.rpcUrl?.trim() || !ethers.isAddress(env.contractAddress)) {
+    const err = new Error('RPC_URL or CONTRACT_ADDRESS is not configured');
+    err.status = 503;
+    throw err;
+  }
   const dec = await getDecimals(env);
-  const c = getContract(env.rpcUrl, env.privateKey, env.contractAddress);
-  const raw = await c.balanceOf(address);
-  return ethers.formatUnits(raw, dec);
+  try {
+    const p = new ethers.JsonRpcProvider(env.rpcUrl);
+    const c = new ethers.Contract(
+      env.contractAddress,
+      ['function balanceOf(address account) view returns (uint256)'],
+      p
+    );
+    const raw = await c.balanceOf(address);
+    return ethers.formatUnits(raw, dec);
+  } catch (e) {
+    throw wrapChainError('balanceOf', e);
+  }
+}
+
+/** Human-readable total supply (uses cached decimals when possible). */
+async function getTotalSupplyHuman(env) {
+  if (!env.rpcUrl?.trim() || !ethers.isAddress(env.contractAddress)) {
+    const err = new Error('RPC_URL or CONTRACT_ADDRESS is not configured');
+    err.status = 503;
+    throw err;
+  }
+  const dec = await getDecimals(env);
+  try {
+    const p = new ethers.JsonRpcProvider(env.rpcUrl);
+    const c = new ethers.Contract(
+      env.contractAddress,
+      ['function totalSupply() view returns (uint256)'],
+      p
+    );
+    const raw = await c.totalSupply();
+    return ethers.formatUnits(raw, dec);
+  } catch (e) {
+    throw wrapChainError('totalSupply', e);
+  }
 }
 
 async function verifyDepositTx(env, txHash, expectedToAddress) {
-  bindEnv(env);
-  const p = getProvider(env.rpcUrl);
+  if (!env.rpcUrl?.trim()) {
+    const err = new Error('RPC_URL is not configured');
+    err.status = 503;
+    throw err;
+  }
+  const p = new ethers.JsonRpcProvider(env.rpcUrl);
   let receipt;
   try {
     receipt = await p.getTransactionReceipt(txHash);
@@ -259,6 +323,7 @@ module.exports = {
   burnTokens,
   transferTokens,
   getOnChainBalance,
+  getTotalSupplyHuman,
   verifyDepositTx,
   getDecimals,
   resetChainClients,

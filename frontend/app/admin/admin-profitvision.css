@@ -117,6 +117,25 @@
   flex-shrink: 0;
 }
 
+/* Brand mark — INR ₹ logo (public/inrt-logo.png) */
+.adminPvLogoImg {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: #0a0a0a;
+}
+
+.adminPvLogoImgLink {
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  line-height: 0;
+  background: #0a0a0a;
+}
+
 .adminPvNav {
   flex: 1;
   overflow-y: auto;
@@ -484,4 +503,10 @@ a.adminPvNavLink {
   .adminPvCollapseToggle {
     display: flex;
   }
+}
+
+.adminInrtPage {
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
 }

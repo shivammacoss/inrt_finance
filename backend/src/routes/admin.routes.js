@@ -15,5 +15,8 @@ router.post('/mint', adminController.mintValidators, adminController.mint);
 router.post('/burn', adminController.burnValidators, adminController.burn);
 router.post('/adjust', adminController.adjustValidators, adminController.adjust);
 router.post('/adjust-balance', adminController.adjustValidators, adminController.adjust);
+router.get('/requests', adminController.listRequests);
+router.post('/request/approve', adminController.requestIdValidators, adminController.approveRequest);
+router.post('/request/reject', adminController.rejectRequestValidators, adminController.rejectRequest);
 
 module.exports = router;

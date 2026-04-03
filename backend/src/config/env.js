@@ -44,12 +44,41 @@ function loadEnv() {
     console.warn('[env] TOKEN_DECIMALS invalid:', e.message);
   }
 
+  const paymentRails = {
+    upi: {
+      payToId: (process.env.PAYMENT_UPI_ID || '').trim() || null,
+      payToName: (process.env.PAYMENT_UPI_NAME || '').trim() || 'INRT',
+    },
+    bank_transfer: {
+      accountName: (process.env.PAYMENT_BANK_HOLDER || '').trim() || null,
+      accountNumber: (process.env.PAYMENT_BANK_ACCOUNT || '').trim() || null,
+      ifsc: (process.env.PAYMENT_BANK_IFSC || '').trim() || null,
+      bankName: (process.env.PAYMENT_BANK_NAME || '').trim() || null,
+    },
+    card: {
+      instructions:
+        (process.env.PAYMENT_CARD_INSTRUCTIONS || '').trim() ||
+        'Complete card payment through your bank app or gateway, then paste the transaction / approval reference below. Admin will match it to your request.',
+    },
+    other: {
+      instructions:
+        (process.env.PAYMENT_OTHER_INSTRUCTIONS || '').trim() ||
+        'Pay using the method shared by support (QR, link, etc.) and describe the payment in the reference field.',
+    },
+  };
+
   return {
     port: parseInt(process.env.PORT || '5001', 10),
     nodeEnv: process.env.NODE_ENV || 'development',
     mongoUri: process.env.MONGO_URI,
     jwtSecret: process.env.JWT_SECRET,
+    /** @deprecated use jwtAccessExpiresIn */
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || process.env.JWT_EXPIRES_IN || '15m',
+    jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    frontendUrl: (process.env.FRONTEND_URL || '').trim(),
+    userDailyWithdrawLimit: (process.env.USER_DAILY_WITHDRAW_LIMIT || '').trim(),
+    globalWithdrawDailyFraction: process.env.GLOBAL_WITHDRAW_DAILY_FRACTION || '0.2',
     rpcUrl: process.env.RPC_URL,
     contractAddress: process.env.CONTRACT_ADDRESS,
     privateKey,
@@ -59,6 +88,7 @@ function loadEnv() {
       .split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
+    paymentRails,
   };
 }
 

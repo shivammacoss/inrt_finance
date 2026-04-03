@@ -29,8 +29,8 @@ function LoginForm() {
     setError('');
     setBusy(true);
     try {
-      const { user, token } = await api.login({ email, password });
-      setSession(token, user);
+      const { user } = await api.login({ email, password });
+      setSession(null, user);
       if (next) {
         if (next === '/admin' && user.role !== 'admin') {
           router.push('/dashboard');

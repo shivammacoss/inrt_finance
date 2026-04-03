@@ -42,14 +42,26 @@ function cmpPositive(amount) {
   }
 }
 
-async function getBalance(userId) {
+async function getBalance(userId, decimals = DEFAULT_DEC) {
   const user = await User.findById(userId);
   if (!user) {
     const err = new Error('User not found');
     err.status = 404;
     throw err;
   }
-  return { balance: user.balance, walletAddress: user.walletAddress };
+  const locked = user.ledgerLocked || '0';
+  let spendable = user.balance;
+  try {
+    spendable = subDecimalStrings(user.balance, locked, decimals);
+  } catch {
+    spendable = '0';
+  }
+  return {
+    balance: user.balance,
+    ledgerLocked: locked,
+    spendable,
+    walletAddress: user.walletAddress,
+  };
 }
 
 async function internalTransfer(fromUserId, { toEmail, toWalletAddress, amount }, decimals) {
@@ -95,6 +107,10 @@ async function internalTransfer(fromUserId, { toEmail, toWalletAddress, amount }
       err.status = 400;
       throw err;
     }
+
+    const locked = from.ledgerLocked || '0';
+    const spendable = subDecimalStrings(from.balance, locked, decimals);
+    subDecimalStrings(spendable, amount, decimals);
 
     const newFromBal = subDecimalStrings(from.balance, amount, decimals);
     const newToBal = addDecimalStrings(to.balance, amount, decimals);
