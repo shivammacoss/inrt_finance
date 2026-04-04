@@ -155,7 +155,7 @@ export default function ProfilePage() {
                   </button>
                 )}
               </div>
-              <p className="inrtProfilePhotoHint">JPEG, PNG, GIF or WebP · max 320 KB</p>
+              <p className="inrtProfilePhotoHint">JPEG, PNG, GIF or WebP · max 320 KB (saved with your account)</p>
             </div>
 
             <div className="inrtProfileFormCol">

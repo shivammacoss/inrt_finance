@@ -2,15 +2,16 @@ const { validationResult, body } = require('express-validator');
 const { ethers } = require('ethers');
 const User = require('../models/User');
 
+/** Max stored avatar string (matches save slice); ~320KB raw file → ~430k base64 + prefix */
+const AVATAR_MAX_LENGTH = 450000;
+
 function avatarUrlValidator() {
   return body('avatarUrl')
     .optional()
     .isString()
-    .custom((val, { req }) => {
+    .custom((val) => {
       if (val == null || val === '') return true;
       const s = String(val).trim();
-      const env = req.app?.locals?.env;
-      const prod = env?.nodeEnv === 'production';
 
       if (/^https:\/\/.+/i.test(s)) {
         if (s.length > 2048) throw new Error('Avatar URL too long');
@@ -18,17 +19,16 @@ function avatarUrlValidator() {
       }
 
       if (s.startsWith('data:image/')) {
-        if (prod) {
-          throw new Error('In production use an HTTPS image URL (S3 / Cloudinary), not base64');
-        }
         if (!/^data:image\/(jpeg|png|gif|webp);base64,/.test(s)) {
-          throw new Error('Photo must be JPEG, PNG, GIF, or WebP (base64)');
+          throw new Error('Photo must be JPEG, PNG, GIF, or WebP');
         }
-        if (s.length > 120000) throw new Error('Photo data too large');
+        if (s.length > AVATAR_MAX_LENGTH) {
+          throw new Error('Photo is too large — use an image under about 300 KB, or paste an HTTPS image URL');
+        }
         return true;
       }
 
-      throw new Error('Avatar must be an HTTPS URL or valid image data (base64 allowed in development only)');
+      throw new Error('Avatar must be an HTTPS image URL or an uploaded photo (JPEG, PNG, GIF, WebP)');
     });
 }
 

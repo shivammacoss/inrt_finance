@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { DEMO_LOGIN } from '@/lib/demo-login';
 
 function safeNextPath(raw: string | null): string | null {
   if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null;
@@ -48,91 +47,59 @@ function LoginForm() {
   }
 
   return (
-    <div className="shell" style={{ maxWidth: 440 }}>
-      <nav className="nav">
-        <Link href="/" className="logo">
-          IN<span>RT</span>
-        </Link>
-        <Link href="/register" className="btn btn-secondary">
-          Register
-        </Link>
-      </nav>
+    <div className="login-auth-root">
+      <div className="login-auth-inner">
+        <div className="login-auth-top">
+          <Link href="/" className="logo">
+            IN<span>RT</span>
+          </Link>
+          <Link href="/register" className="btn btn-secondary">
+            Create account
+          </Link>
+        </div>
 
-      <div className="card">
-        <h1 style={{ marginTop: 0, fontSize: '1.5rem' }}>Welcome back</h1>
-        <p style={{ color: 'var(--muted)', marginTop: '-0.25rem' }}>Sign in to your account</p>
-        {error ? <div className="error-banner">{error}</div> : null}
-        <form onSubmit={onSubmit}>
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+        <div className="login-auth-card login-auth-card--user">
+          <p className="login-auth-eyebrow">User portal</p>
+          <h1 className="login-auth-title-user">Sign in</h1>
+          <p className="login-auth-desc">Access your portfolio, deposits, and transfers on INRT.</p>
 
-        <div
-          className="card"
-          style={{
-            marginTop: '1.25rem',
-            borderColor: 'rgba(0, 212, 170, 0.25)',
-            background: 'rgba(0, 212, 170, 0.06)',
-          }}
-        >
-          <h2 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem' }}>Demo users (after seed:demo)</h2>
-          <p style={{ margin: '0 0 0.75rem', fontSize: '0.8rem', color: 'var(--muted)' }}>
-            Run <code style={{ fontSize: '0.75rem' }}>cd backend && npm run seed:demo</code> once. Admins use the{' '}
-            <strong>admin portal</strong> login.
-          </p>
-          <div style={{ fontSize: '0.8rem', lineHeight: 1.7 }}>
-            {DEMO_LOGIN.users.map((u) => (
-              <p key={u.email} style={{ margin: '0 0 0.35rem' }}>
-                <strong>{u.label}</strong> — {u.email} / {u.password}
-              </p>
-            ))}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.75rem' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ fontSize: '0.8rem', padding: '0.4rem 0.65rem' }}
-              onClick={() => {
-                setEmail(DEMO_LOGIN.users[0].email);
-                setPassword(DEMO_LOGIN.users[0].password);
-              }}
-            >
-              Fill user 1
+          {error ? <div className="error-banner">{error}</div> : null}
+
+          <form className="login-auth-form-user" onSubmit={onSubmit}>
+            <div className="field">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@company.com"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+            </div>
+            <button type="submit" className="btn-login-user" disabled={busy}>
+              {busy ? 'Signing in…' : 'Continue'}
             </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ fontSize: '0.8rem', padding: '0.4rem 0.65rem' }}
-              onClick={() => {
-                setEmail(DEMO_LOGIN.users[1].email);
-                setPassword(DEMO_LOGIN.users[1].password);
-              }}
-            >
-              Fill user 2
-            </button>
+          </form>
+
+          <div className="login-auth-footer">
+            New here?{' '}
+            <Link href="/register" className="login-auth-link">
+              Register
+            </Link>
           </div>
         </div>
       </div>
@@ -144,8 +111,10 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="shell" style={{ maxWidth: 440 }}>
-          <p style={{ color: 'var(--muted)' }}>Loading…</p>
+        <div className="login-auth-root">
+          <div className="login-auth-inner">
+            <p style={{ color: 'var(--muted)', textAlign: 'center' }}>Loading…</p>
+          </div>
         </div>
       }
     >
