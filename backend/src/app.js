@@ -17,16 +17,17 @@ const paymentRoutes = require('./routes/payment.routes');
 const paymentController = require('./controllers/payment.controller');
 
 function buildCorsOrigin(env) {
+  const urls = env.frontendUrls?.length ? env.frontendUrls : env.frontendUrl ? [env.frontendUrl] : [];
   if (env.nodeEnv === 'production') {
-    if (!env.frontendUrl) {
-      throw new Error('FRONTEND_URL is required in production for CORS');
+    if (!urls.length) {
+      throw new Error(
+        'FRONTEND_URL is required in production for CORS (comma-separated for user + admin origins)'
+      );
     }
-    return env.frontendUrl;
+    return urls;
   }
-  if (env.frontendUrl) {
-    return [env.frontendUrl, 'http://localhost:3033', 'http://127.0.0.1:3033'];
-  }
-  return true;
+  const dev = [...urls, 'http://localhost:3033', 'http://127.0.0.1:3033'];
+  return dev.length ? dev : true;
 }
 
 function createApp() {

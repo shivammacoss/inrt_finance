@@ -7,17 +7,20 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { DEMO_LOGIN } from '@/lib/demo-login';
 
+const userAppOrigin = (process.env.NEXT_PUBLIC_USER_APP_ORIGIN || '').replace(/\/$/, '');
+
 function safeNextPath(raw: string | null): string | null {
   if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null;
+  if (!raw.startsWith('/admin')) return null;
   return raw;
 }
 
-function LoginForm() {
+function AdminLoginForm() {
   const { setSession } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextRaw = searchParams.get('next');
-  const next = safeNextPath(nextRaw);
+  const next = safeNextPath(nextRaw) || '/admin';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,16 +33,17 @@ function LoginForm() {
     setBusy(true);
     try {
       const { user } = await api.login({ email, password });
-      setSession(null, user);
-      if (next) {
-        if (next.startsWith('/admin') && user.role !== 'admin') {
-          router.push('/dashboard');
-          return;
+      if (user.role !== 'admin') {
+        try {
+          await api.logout();
+        } catch {
+          /* ignore */
         }
-        router.push(next);
+        setError('This account is not an administrator. Use the user site to sign in.');
         return;
       }
-      router.push(user.role === 'admin' ? '/admin' : '/dashboard');
+      setSession(null, user);
+      router.push(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -50,34 +54,44 @@ function LoginForm() {
   return (
     <div className="shell" style={{ maxWidth: 440 }}>
       <nav className="nav">
-        <Link href="/" className="logo">
+        <Link href="/admin" className="logo">
           IN<span>RT</span>
         </Link>
-        <Link href="/register" className="btn btn-secondary">
-          Register
-        </Link>
+        <span
+          style={{
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: 'var(--accent2)',
+          }}
+        >
+          Admin
+        </span>
       </nav>
 
       <div className="card">
-        <h1 style={{ marginTop: 0, fontSize: '1.5rem' }}>Welcome back</h1>
-        <p style={{ color: 'var(--muted)', marginTop: '-0.25rem' }}>Sign in to your account</p>
+        <h1 style={{ marginTop: 0, fontSize: '1.5rem' }}>Admin sign in</h1>
+        <p style={{ color: 'var(--muted)', marginTop: '-0.25rem' }}>
+          Operator access only. User accounts use the main app.
+        </p>
         {error ? <div className="error-banner">{error}</div> : null}
         <form onSubmit={onSubmit}>
           <div className="field">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="admin-email">Email</label>
             <input
-              id="email"
+              id="admin-email"
               type="email"
-              autoComplete="email"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
           <div className="field">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="admin-password">Password</label>
             <input
-              id="password"
+              id="admin-password"
               type="password"
               autoComplete="current-password"
               value={password}
@@ -86,7 +100,7 @@ function LoginForm() {
             />
           </div>
           <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
+            {busy ? 'Signing in…' : 'Sign in to admin'}
           </button>
         </form>
 
@@ -98,49 +112,41 @@ function LoginForm() {
             background: 'rgba(0, 212, 170, 0.06)',
           }}
         >
-          <h2 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem' }}>Demo users (after seed:demo)</h2>
+          <h2 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem' }}>Bootstrap admin (after seed)</h2>
           <p style={{ margin: '0 0 0.75rem', fontSize: '0.8rem', color: 'var(--muted)' }}>
-            Run <code style={{ fontSize: '0.75rem' }}>cd backend && npm run seed:demo</code> once. Admins use the{' '}
-            <strong>admin portal</strong> login.
+            On the API server run <code style={{ fontSize: '0.75rem' }}>npm run seed:admin</code> or{' '}
+            <code style={{ fontSize: '0.75rem' }}>npm run seed:demo</code> once.
           </p>
-          <div style={{ fontSize: '0.8rem', lineHeight: 1.7 }}>
-            {DEMO_LOGIN.users.map((u) => (
-              <p key={u.email} style={{ margin: '0 0 0.35rem' }}>
-                <strong>{u.label}</strong> — {u.email} / {u.password}
-              </p>
-            ))}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.75rem' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ fontSize: '0.8rem', padding: '0.4rem 0.65rem' }}
-              onClick={() => {
-                setEmail(DEMO_LOGIN.users[0].email);
-                setPassword(DEMO_LOGIN.users[0].password);
-              }}
-            >
-              Fill user 1
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ fontSize: '0.8rem', padding: '0.4rem 0.65rem' }}
-              onClick={() => {
-                setEmail(DEMO_LOGIN.users[1].email);
-                setPassword(DEMO_LOGIN.users[1].password);
-              }}
-            >
-              Fill user 2
-            </button>
-          </div>
+          <p style={{ fontSize: '0.8rem', margin: '0 0 0.75rem' }}>
+            <strong>Admin</strong> — {DEMO_LOGIN.admin.email} / {DEMO_LOGIN.admin.password}
+          </p>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ fontSize: '0.8rem', padding: '0.4rem 0.65rem' }}
+            onClick={() => {
+              setEmail(DEMO_LOGIN.admin.email);
+              setPassword(DEMO_LOGIN.admin.password);
+            }}
+          >
+            Fill admin
+          </button>
         </div>
+
+        {userAppOrigin ? (
+          <p style={{ marginTop: '1.25rem', fontSize: '0.85rem', color: 'var(--muted)' }}>
+            User app:{' '}
+            <a href={`${userAppOrigin}/login`} style={{ color: 'var(--accent2)', fontWeight: 600 }}>
+              {userAppOrigin}/login
+            </a>
+          </p>
+        ) : null}
       </div>
     </div>
   );
 }
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   return (
     <Suspense
       fallback={
@@ -149,7 +155,7 @@ export default function LoginPage() {
         </div>
       }
     >
-      <LoginForm />
+      <AdminLoginForm />
     </Suspense>
   );
 }

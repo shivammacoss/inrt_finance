@@ -20,7 +20,7 @@ export function AdminChrome({ title, subtitle, loginNext = '/admin', children }:
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      router.replace(`/login?next=${encodeURIComponent(loginNext)}`);
+      router.replace(`/admin/login?next=${encodeURIComponent(loginNext)}`);
       return;
     }
     if (user.role !== 'admin') {
@@ -41,8 +41,8 @@ export function AdminChrome({ title, subtitle, loginNext = '/admin', children }:
       <div className="shell" style={{ maxWidth: 480 }}>
         <p style={{ color: 'var(--muted)' }}>Sign in required for admin.</p>
         <p style={{ marginTop: '1rem' }}>
-          <Link href={`/login?next=${encodeURIComponent(loginNext)}`} className="btn btn-primary">
-            Go to login
+          <Link href={`/admin/login?next=${encodeURIComponent(loginNext)}`} className="btn btn-primary">
+            Admin sign in
           </Link>
         </p>
       </div>

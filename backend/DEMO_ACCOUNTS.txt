@@ -2,8 +2,8 @@ INRT — demo accounts (create with: cd backend && npm run seed:demo)
 Requires valid MONGO_URI in backend/.env (Atlas or local MongoDB — Docker not used in this project)
 
 --- Admin ---
-Email:    admin@inrt.demo
-Password: InrtAdmin@2024
+Email:    admin@inrt.com
+Password: InrtAdmin@2026
 Admin UI: http://localhost:3033/admin  (sign in at /login first)
 
 --- Users ---

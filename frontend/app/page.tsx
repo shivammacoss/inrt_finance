@@ -5,6 +5,12 @@ import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
+const adminPortalLogin =
+  (process.env.NEXT_PUBLIC_ADMIN_PORTAL_URL || '').replace(/\/$/, '') ||
+  (process.env.NEXT_PUBLIC_ADMIN_HOST
+    ? `https://${process.env.NEXT_PUBLIC_ADMIN_HOST.replace(/\/$/, '')}/admin/login`
+    : '');
+
 export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -22,6 +28,11 @@ export default function HomePage() {
           IN<span>RT</span>
         </Link>
         <div className="nav-actions">
+          {adminPortalLogin ? (
+            <a href={adminPortalLogin} className="btn btn-secondary" style={{ marginRight: '0.25rem' }}>
+              Admin
+            </a>
+          ) : null}
           <Link href="/login" className="btn btn-secondary">
             Log in
           </Link>

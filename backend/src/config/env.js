@@ -3,6 +3,15 @@ const { normalizePrivateKey } = require('../utils/privateKey');
 
 const required = ['MONGO_URI', 'JWT_SECRET', 'RPC_URL', 'CONTRACT_ADDRESS', 'PRIVATE_KEY'];
 
+/** Comma-separated HTTPS origins, e.g. https://inrt.finance,https://admin.inrt.finance */
+function parseFrontendUrls(raw) {
+  if (raw == null || String(raw).trim() === '') return [];
+  return String(raw)
+    .split(',')
+    .map((s) => s.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+}
+
 function parseTokenDecimals() {
   const v = process.env.TOKEN_DECIMALS;
   if (v == null || String(v).trim() === '') return null;
@@ -75,6 +84,9 @@ function loadEnv() {
   let razorpayMaxInr = Number.isFinite(razMax) && razMax > 0 ? razMax : 500000;
   if (razorpayMaxInr < razorpayMinInr) razorpayMaxInr = razorpayMinInr;
 
+  const frontendUrls = parseFrontendUrls(process.env.FRONTEND_URL);
+  const frontendUrl = frontendUrls[0] || ''; // first origin (compat)
+
   return {
     port: parseInt(process.env.PORT || '5001', 10),
     nodeEnv: process.env.NODE_ENV || 'development',
@@ -84,7 +96,9 @@ function loadEnv() {
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
     jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || process.env.JWT_EXPIRES_IN || '15m',
     jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-    frontendUrl: (process.env.FRONTEND_URL || '').trim(),
+    /** First origin (compat); use frontendUrls for CORS list */
+    frontendUrl,
+    frontendUrls,
     userDailyWithdrawLimit: (process.env.USER_DAILY_WITHDRAW_LIMIT || '').trim(),
     globalWithdrawDailyFraction: process.env.GLOBAL_WITHDRAW_DAILY_FRACTION || '0.2',
     rpcUrl: process.env.RPC_URL,

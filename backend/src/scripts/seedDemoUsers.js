@@ -12,8 +12,8 @@ const logger = require('../utils/logger');
 
 const DEMO_USERS = [
   {
-    email: 'admin@inrt.demo',
-    password: 'InrtAdmin@2024',
+    email: 'admin@inrt.com',
+    password: 'InrtAdmin@2026',
     role: 'admin',
     walletAddress: '',
   },
@@ -63,7 +63,7 @@ async function run() {
   await mongoose.disconnect();
 
   console.log('\n========== INRT demo logins (local only) ==========');
-  console.log('Admin:  admin@inrt.demo  /  InrtAdmin@2024');
+  console.log('Admin:  admin@inrt.com  /  InrtAdmin@2026');
   console.log('User 1: user1@inrt.demo /  InrtUser@2024');
   console.log('User 2: user2@inrt.demo /  InrtUser@2024');
   console.log('Frontend: http://localhost:3033/login');
