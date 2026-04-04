@@ -1,14 +1,13 @@
 'use client';
 
 import { useDashboardData } from '@/lib/dashboard-data-context';
-import { DashboardChrome } from '@/components/dashboard/DashboardChrome';
 import { DashboardBackLink } from '@/components/dashboard/DashboardBackLink';
 
 export default function DashboardHistoryPage() {
   const { txs } = useDashboardData();
 
   return (
-    <DashboardChrome title="History" subtitle="Ledger transactions" loginNext="/dashboard/history">
+    <>
       <section className="adminPvSection">
         <p className="inrtCbStepLabel">History</p>
         <div className="adminPvCard inrtCardPro">
@@ -53,6 +52,6 @@ export default function DashboardHistoryPage() {
         </div>
         <DashboardBackLink />
       </section>
-    </DashboardChrome>
+    </>
   );
 }

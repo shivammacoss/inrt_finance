@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useAdminData } from '@/lib/admin-data-context';
-import { AdminChrome } from '@/components/admin/AdminChrome';
 import { AdminBackLink } from '@/components/admin/AdminBackLink';
 
 type FilterKey = 'queue' | 'pending' | 'all';
@@ -73,7 +72,7 @@ export default function AdminRequestsPage() {
   }
 
   return (
-    <AdminChrome title="Requests" subtitle="Deposit & withdraw queue" loginNext="/admin/requests">
+    <>
       {error ? <div className="adminPvAlert adminPvAlertErr">{error}</div> : null}
       {msg ? <div className="adminPvAlert adminPvAlertOk">{msg}</div> : null}
 
@@ -184,6 +183,6 @@ export default function AdminRequestsPage() {
         </div>
         <AdminBackLink />
       </section>
-    </AdminChrome>
+    </>
   );
 }

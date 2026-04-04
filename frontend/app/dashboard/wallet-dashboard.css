@@ -23,17 +23,22 @@
   padding: 1.75rem 1.5rem;
   background: linear-gradient(
     135deg,
-    rgba(13, 148, 136, 0.14) 0%,
-    rgba(15, 23, 42, 0.06) 50%,
-    rgba(0, 212, 170, 0.1) 100%
+    rgba(240, 185, 11, 0.1) 0%,
+    rgba(15, 23, 42, 0.04) 45%,
+    rgba(45, 225, 225, 0.08) 100%
   );
   border: 1px solid var(--pv-card-border);
   box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
 }
 
 .dark .inrtWalletHero {
-  background: linear-gradient(135deg, rgba(13, 148, 136, 0.2) 0%, rgba(15, 23, 42, 0.85) 100%);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(
+    125deg,
+    rgba(240, 185, 11, 0.12) 0%,
+    rgba(30, 35, 41, 0.92) 48%,
+    rgba(45, 225, 225, 0.09) 100%
+  );
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
 .inrtWalletHeroTop {
@@ -107,8 +112,8 @@
 }
 
 .inrtQuickBtn:hover:not(:disabled) {
-  border-color: #0d9488;
-  background: rgba(13, 148, 136, 0.08);
+  border-color: rgba(240, 185, 11, 0.55);
+  background: rgba(240, 185, 11, 0.08);
   transform: translateY(-1px);
 }
 
@@ -118,13 +123,14 @@
 }
 
 .inrtQuickBtnPrimary {
-  background: linear-gradient(135deg, #0d9488, #0f766e);
-  color: #fff;
+  background: linear-gradient(135deg, #f0b90b, #fcd535);
+  color: #0b0e11;
   border-color: transparent;
+  box-shadow: 0 2px 14px rgba(240, 185, 11, 0.3);
 }
 
 .inrtQuickBtnPrimary:hover:not(:disabled) {
-  filter: brightness(1.06);
+  filter: brightness(1.05);
   border-color: transparent;
 }
 
@@ -190,26 +196,9 @@
   margin-top: 0.75rem;
 }
 
-/* —— Coinbase-inspired user shell (keeps INRT teal / existing theme tokens) —— */
-
-.inrtCbShell .adminPvNavBtn.active {
-  background: rgba(13, 148, 136, 0.22);
-  color: #5eead4;
-}
-
-.inrtCbShell.light .adminPvNavBtn.active {
-  background: rgba(13, 148, 136, 0.14);
-  color: #0f766e;
-}
-
-.inrtCbShell .adminPvNavBtn.active:hover {
-  background: rgba(13, 148, 136, 0.3);
-  color: #99f6e4;
-}
-
-.inrtCbShell.light .adminPvNavBtn.active:hover {
-  background: rgba(13, 148, 136, 0.2);
-  color: #115e59;
+/* User shell: gold nav matches admin; extra cyan edge-glow in dark */
+.inrtCbShell.dark .adminPvNavBtn.active {
+  box-shadow: 0 0 0 1px rgba(45, 225, 225, 0.15), 0 0 24px rgba(240, 185, 11, 0.22);
 }
 
 .inrtCbShell .adminPvHeader {
@@ -259,7 +248,7 @@
 }
 
 .inrtCbIconBtn:hover:not(:disabled) {
-  border-color: #0d9488;
+  border-color: rgba(240, 185, 11, 0.45);
   color: var(--pv-text);
 }
 
@@ -343,9 +332,9 @@
   width: 3.35rem;
   height: 3.35rem;
   border-radius: 50%;
-  background: rgba(13, 148, 136, 0.12);
-  border: 1px solid rgba(13, 148, 136, 0.28);
-  color: #0d9488;
+  background: rgba(240, 185, 11, 0.12);
+  border: 1px solid rgba(240, 185, 11, 0.32);
+  color: #b8860b;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -353,14 +342,14 @@
 }
 
 .dark .inrtCbPillIcon {
-  background: rgba(13, 148, 136, 0.18);
-  color: #5eead4;
-  border-color: rgba(45, 212, 191, 0.35);
+  background: rgba(240, 185, 11, 0.14);
+  color: #fcd535;
+  border-color: rgba(252, 213, 53, 0.42);
 }
 
 .inrtCbPill:hover:not(:disabled) .inrtCbPillIcon {
   transform: scale(1.06);
-  box-shadow: 0 8px 24px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 8px 28px rgba(240, 185, 11, 0.22);
 }
 
 .inrtCbListBlock {
@@ -392,14 +381,14 @@
   padding: 0.25rem 0.35rem;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #0d9488;
+  color: #b8860b;
   cursor: pointer;
   text-decoration: none;
   display: inline-block;
 }
 
 .dark .inrtCbLinkBtn {
-  color: #5eead4;
+  color: #fcd535;
 }
 
 .inrtCbLinkBtn:hover {
@@ -426,8 +415,13 @@
 }
 
 .inrtCbRow:hover {
-  border-color: rgba(13, 148, 136, 0.45);
+  border-color: rgba(240, 185, 11, 0.45);
   transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.dark .inrtCbRow:hover {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
 }
 
 .inrtCbRow:last-child {
@@ -438,8 +432,8 @@
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(13, 148, 136, 0.25), rgba(0, 212, 170, 0.15));
-  color: #0d9488;
+  background: linear-gradient(135deg, rgba(240, 185, 11, 0.28), rgba(45, 225, 225, 0.12));
+  color: #9a7200;
   font-weight: 800;
   font-size: 0.8rem;
   display: flex;
@@ -449,7 +443,7 @@
 }
 
 .dark .inrtCbRowIcon {
-  color: #5eead4;
+  color: #fcd535;
 }
 
 .inrtCbRowMeta {
@@ -589,10 +583,24 @@
     border-radius: 1rem;
     padding: 1.75rem 2rem 2rem;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .inrtPortfolioMain::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #f0b90b, #2de1e1, #e879f9);
+    opacity: 0.85;
+    pointer-events: none;
   }
 
   .dark .inrtPortfolioMain {
-    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
   .inrtPortfolioMain .inrtCbPills {
@@ -627,7 +635,7 @@
   height: 2.25rem;
   border-radius: 999px;
   object-fit: cover;
-  border: 2px solid rgba(13, 148, 136, 0.4);
+  border: 2px solid rgba(240, 185, 11, 0.55);
   flex-shrink: 0;
 }
 
@@ -635,8 +643,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(13, 148, 136, 0.45), rgba(0, 212, 170, 0.25));
-  color: #ecfdf5;
+  background: linear-gradient(135deg, rgba(240, 185, 11, 0.5), rgba(45, 225, 225, 0.2));
+  color: #0b0e11;
   font-weight: 800;
   font-size: 0.9rem;
 }
@@ -650,13 +658,13 @@
 
 .inrtHeaderPhone {
   font-size: 0.75rem;
-  color: #0d9488;
+  color: #b8860b;
   font-weight: 500;
   line-height: 1.25;
 }
 
 .dark .inrtHeaderPhone {
-  color: #5eead4;
+  color: #fcd535;
 }
 
 .inrtHeaderEmail {
@@ -666,18 +674,6 @@
 }
 
 /* Profile page */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 .inrtProfilePage {
   max-width: 52rem;
   margin: 0 auto;
@@ -687,85 +683,7 @@
   margin-top: 0.5rem;
 }
 
-.inrtProfileLayout {
-  display: flex;
-  flex-direction: column;
-  gap: 1.75rem;
-}
-
-@media (min-width: 768px) {
-  .inrtProfileLayout {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 2.25rem;
-  }
-
-  .inrtProfileAside {
-    flex: 0 0 200px;
-  }
-}
-
-.inrtProfileAside {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.inrtProfileAvatarWrap {
-  width: 132px;
-  height: 132px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid rgba(13, 148, 136, 0.35);
-  background: var(--pv-row-bg);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
-}
-
-.dark .inrtProfileAvatarWrap {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-.inrtProfileAvatarImg {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.inrtProfileAvatarFallback {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--pv-muted);
-}
-
-.inrtProfilePhotoActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
-  margin-top: 1rem;
-}
-
-.inrtProfilePhotoBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8125rem;
-}
-
-.inrtProfilePhotoHint {
-  margin: 0.65rem 0 0;
-  font-size: 0.72rem;
-  color: var(--pv-muted);
-  max-width: 14rem;
-  line-height: 1.4;
-}
-
 .inrtProfileFormCol {
-  flex: 1;
   min-width: 0;
 }
 
@@ -790,4 +708,61 @@
   .inrtCbShell.dark .adminPvSection .inrtCardPro {
     box-shadow: 0 4px 28px rgba(0, 0, 0, 0.35);
   }
+}
+
+/* Portfolio hero: decorative sparkline (not financial data) */
+.inrtFxHeroRow {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.inrtFxSpark {
+  display: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  opacity: 0.9;
+}
+
+.inrtFxSpark svg {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  filter: drop-shadow(0 0 12px rgba(240, 185, 11, 0.15));
+}
+
+.inrtFxSparkCaption {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pv-muted);
+}
+
+@media (min-width: 1024px) {
+  .inrtFxHeroRow {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+
+  .inrtFxSpark {
+    display: flex;
+    padding-top: 0.25rem;
+  }
+}
+
+.inrtCbAddrLine a {
+  color: inherit;
+  font-weight: 600;
+}
+
+.adminPvRoot.dark .inrtCbAddrLine a {
+  color: #fcd535;
+}
+
+.adminPvRoot.light .inrtCbAddrLine a {
+  color: #b8860b;
 }

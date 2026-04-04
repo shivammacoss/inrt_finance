@@ -51,7 +51,6 @@ export function DashboardChrome({ title, subtitle, loginNext, children }: Props)
       userEmail={user.email}
       userDisplayName={user.fullName?.trim() || undefined}
       userPhone={user.phone?.trim() || undefined}
-      userAvatarUrl={user.avatarUrl?.trim() || undefined}
       isAdmin={user.role === 'admin'}
       onLogout={() => {
         void logout();

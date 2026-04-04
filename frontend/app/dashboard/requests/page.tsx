@@ -1,7 +1,6 @@
 'use client';
 
 import { useDashboardData } from '@/lib/dashboard-data-context';
-import { DashboardChrome } from '@/components/dashboard/DashboardChrome';
 import { DashboardBackLink } from '@/components/dashboard/DashboardBackLink';
 import { requestStatusClass } from '@/components/dashboard/request-status';
 
@@ -9,7 +8,7 @@ export default function DashboardRequestsPage() {
   const { requests } = useDashboardData();
 
   return (
-    <DashboardChrome title="My requests" subtitle="Deposit & withdrawal queue" loginNext="/dashboard/requests">
+    <>
       <section className="adminPvSection">
         <p className="inrtCbStepLabel">Pending</p>
         <div className="adminPvCard inrtCardPro">
@@ -67,6 +66,6 @@ export default function DashboardRequestsPage() {
         </div>
         <DashboardBackLink />
       </section>
-    </DashboardChrome>
+    </>
   );
 }

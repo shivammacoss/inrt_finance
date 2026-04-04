@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useAdminData } from '@/lib/admin-data-context';
-import { AdminChrome } from '@/components/admin/AdminChrome';
 import { AdminBackLink } from '@/components/admin/AdminBackLink';
 
 export default function AdminAdjustPage() {
@@ -41,7 +40,7 @@ export default function AdminAdjustPage() {
   }
 
   return (
-    <AdminChrome title="Balance adjust" subtitle="Manual ledger correction" loginNext="/admin/adjust">
+    <>
       {error ? <div className="adminPvAlert adminPvAlertErr">{error}</div> : null}
       {msg ? <div className="adminPvAlert adminPvAlertOk">{msg}</div> : null}
 
@@ -73,6 +72,6 @@ export default function AdminAdjustPage() {
         </div>
         <AdminBackLink />
       </section>
-    </AdminChrome>
+    </>
   );
 }

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useAdminData } from '@/lib/admin-data-context';
-import { AdminChrome } from '@/components/admin/AdminChrome';
 import { AdminBackLink } from '@/components/admin/AdminBackLink';
 
 export default function AdminMintBurnPage() {
@@ -60,7 +59,7 @@ export default function AdminMintBurnPage() {
   }
 
   return (
-    <AdminChrome title="Mint / Burn" subtitle="On-chain token operations" loginNext="/admin/mint-burn">
+    <>
       {error ? <div className="adminPvAlert adminPvAlertErr">{error}</div> : null}
       {msg ? <div className="adminPvAlert adminPvAlertOk">{msg}</div> : null}
 
@@ -112,6 +111,6 @@ export default function AdminMintBurnPage() {
         </div>
         <AdminBackLink />
       </section>
-    </AdminChrome>
+    </>
   );
 }

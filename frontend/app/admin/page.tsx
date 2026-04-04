@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAdminData } from '@/lib/admin-data-context';
-import { AdminChrome } from '@/components/admin/AdminChrome';
 
 export default function AdminOverviewPage() {
   const { stats, dataLoading, load } = useAdminData();
@@ -43,7 +42,7 @@ export default function AdminOverviewPage() {
   ];
 
   return (
-    <AdminChrome title="Overview" subtitle="INRT admin — key metrics" loginNext="/admin">
+    <>
       {err ? <div className="adminPvAlert adminPvAlertErr">{err}</div> : null}
 
       <section className="adminPvSection">
@@ -103,6 +102,6 @@ export default function AdminOverviewPage() {
           </div>
         </div>
       </section>
-    </AdminChrome>
+    </>
   );
 }

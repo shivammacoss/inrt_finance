@@ -7,7 +7,6 @@ import { Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useDashboardData } from '@/lib/dashboard-data-context';
-import { DashboardChrome } from '@/components/dashboard/DashboardChrome';
 import { DashboardBackLink } from '@/components/dashboard/DashboardBackLink';
 import { PaymentInstructions } from '@/components/dashboard/PaymentInstructions';
 import type { DashboardPayMethod } from '@/components/dashboard/dashboard-types';
@@ -98,7 +97,7 @@ export default function DashboardDepositPage() {
             email: user.email || undefined,
             name: user.fullName || undefined,
           },
-          theme: { color: '#0d9488' },
+          theme: { color: '#f0b90b' },
           handler: async (response: RazorpayHandlerResponse) => {
             try {
               const v = await api.verifyRazorpayPayment({
@@ -140,7 +139,7 @@ export default function DashboardDepositPage() {
   }
 
   return (
-    <DashboardChrome title="Deposit" subtitle="Request INRT after you pay" loginNext="/dashboard/deposit">
+    <>
       {error ? <div className="adminPvAlert adminPvAlertErr">{error}</div> : null}
       {msg ? <div className="adminPvAlert adminPvAlertOk">{msg}</div> : null}
       {rzError ? <div className="adminPvAlert adminPvAlertErr">{rzError}</div> : null}
@@ -153,7 +152,7 @@ export default function DashboardDepositPage() {
           <p className="inrtSectionHint">
             UPI, cards, and netbanking in INR. The API verifies the payment signature before crediting INRT; save a BSC
             wallet in{' '}
-            <Link href="/dashboard/profile" style={{ color: '#0d9488', fontWeight: 600 }}>
+            <Link href="/dashboard/profile" className="inrtCbLinkBtn">
               Profile
             </Link>
             . Configure <code className="text-xs">RAZORPAY_KEY_ID</code> and{' '}
@@ -190,11 +189,11 @@ export default function DashboardDepositPage() {
             <h3 className="inrtSectionTitle">Request deposit</h3>
             <p className="inrtSectionHint">
               After payment, submit this request. Admin credits INRT to the BSC wallet in your{' '}
-              <Link href="/dashboard/profile" style={{ color: '#0d9488', fontWeight: 600 }}>
+              <Link href="/dashboard/profile" className="inrtCbLinkBtn">
                 Profile
               </Link>
               . On-chain address & QR:{' '}
-              <Link href="/dashboard/profile" style={{ color: '#0d9488', fontWeight: 600 }}>
+              <Link href="/dashboard/profile" className="inrtCbLinkBtn">
                 Profile
               </Link>
               .
@@ -284,6 +283,6 @@ export default function DashboardDepositPage() {
         </div>
         <DashboardBackLink />
       </section>
-    </DashboardChrome>
+    </>
   );
 }

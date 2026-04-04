@@ -12,12 +12,9 @@ import {
   History,
   ClipboardList,
   Menu,
-  X,
   Sun,
   Moon,
   LogOut,
-  PanelLeftClose,
-  PanelLeft,
   Shield,
   UserCircle,
   Wallet,
@@ -65,7 +62,6 @@ type Props = {
   userEmail?: string;
   userDisplayName?: string;
   userPhone?: string;
-  userAvatarUrl?: string;
   isAdmin?: boolean;
   onLogout: () => void;
   children: React.ReactNode;
@@ -79,21 +75,20 @@ export function ProfitVisionUserShell({
   userEmail,
   userDisplayName,
   userPhone,
-  userAvatarUrl,
   isAdmin,
   onLogout,
   children,
   shellClassName,
 }: Props) {
   const pathname = usePathname();
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     try {
       const t = localStorage.getItem(PV_THEME_STORAGE_KEY);
-      if (t === 'dark') setDark(true);
+      if (t === 'light') setDark(false);
+      else if (t === 'dark') setDark(true);
     } catch {
       /* ignore */
     }
@@ -114,8 +109,8 @@ export function ProfitVisionUserShell({
   useLayoutEffect(() => {
     const prevBg = document.body.style.background;
     const prevColor = document.body.style.color;
-    document.body.style.background = dark ? '#0a0a0a' : '#f9fafb';
-    document.body.style.color = dark ? '#f9fafb' : '#111827';
+    document.body.style.background = dark ? '#0b0e11' : '#f3f4f6';
+    document.body.style.color = dark ? '#eaecef' : '#0b0e11';
     return () => {
       document.body.style.background = prevBg;
       document.body.style.color = prevColor;
@@ -135,9 +130,7 @@ export function ProfitVisionUserShell({
         />
       )}
 
-      <aside
-        className={`adminPvSidebar ${mobileOpen ? 'mobileOpen' : ''} ${collapsed ? 'collapsed' : ''}`}
-      >
+      <aside className={`adminPvSidebar ${mobileOpen ? 'mobileOpen' : ''}`}>
         <div className="adminPvLogoRow">
           <div className="flex items-center gap-2 min-w-0">
             <Link href="/dashboard" className="adminPvLogoImgLink" title="INRT" aria-label="INRT — Overview">
@@ -150,36 +143,14 @@ export function ProfitVisionUserShell({
                 priority
               />
             </Link>
-            {!collapsed && (
-              <div className="min-w-0">
-                <div className="font-semibold text-sm truncate" style={{ color: 'var(--pv-text)' }}>
-                  INRT
-                </div>
-                <div className="text-xs truncate" style={{ color: 'var(--pv-muted)' }}>
-                  Wallet
-                </div>
+            <div className="min-w-0">
+              <div className="font-semibold text-sm truncate" style={{ color: 'var(--pv-text)' }}>
+                INRT
               </div>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              className="adminPvCollapseToggle p-1 rounded-md hover:opacity-80"
-              style={{ color: 'var(--pv-muted)' }}
-              onClick={() => setCollapsed((c) => !c)}
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
-            </button>
-            <button
-              type="button"
-              className="lg:hidden p-1 rounded-md"
-              style={{ color: 'var(--pv-muted)' }}
-              onClick={() => setMobileOpen(false)}
-              aria-label="Close menu"
-            >
-              <X size={18} />
-            </button>
+              <div className="text-xs truncate" style={{ color: 'var(--pv-muted)' }}>
+                Wallet
+              </div>
+            </div>
           </div>
         </div>
 
@@ -189,11 +160,10 @@ export function ProfitVisionUserShell({
               key={item.id}
               href={item.href}
               className={navBtnClass(item)}
-              title={collapsed ? item.label : undefined}
               onClick={() => setMobileOpen(false)}
             >
               <item.icon size={18} className="flex-shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              <span className="truncate">{item.label}</span>
             </Link>
           ))}
         </nav>
@@ -206,26 +176,24 @@ export function ProfitVisionUserShell({
               onClick={() => setMobileOpen(false)}
             >
               <Shield size={18} />
-              {!collapsed && <span>Admin panel</span>}
+              <span>Admin panel</span>
             </Link>
           ) : null}
           <button
             type="button"
             className="adminPvNavBtn w-full"
             onClick={toggleTheme}
-            title={collapsed ? (dark ? 'Light' : 'Dark') : undefined}
           >
             {dark ? <Sun size={18} /> : <Moon size={18} />}
-            {!collapsed && <span>{dark ? 'Light mode' : 'Dark mode'}</span>}
+            <span>{dark ? 'Light mode' : 'Dark mode'}</span>
           </button>
           <button
             type="button"
             className="adminPvNavBtn w-full"
             onClick={onLogout}
-            title={collapsed ? 'Log out' : undefined}
           >
             <LogOut size={18} />
-            {!collapsed && <span>Log out</span>}
+            <span>Log out</span>
           </button>
         </div>
       </aside>
@@ -247,14 +215,9 @@ export function ProfitVisionUserShell({
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 inrtHeaderUserRow">
-            {userAvatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={userAvatarUrl} alt="" className="inrtHeaderAvatar" width={36} height={36} />
-            ) : (
-              <div className="inrtHeaderAvatar inrtHeaderAvatarPlaceholder" aria-hidden>
-                {(userDisplayName || userEmail || '?').slice(0, 1).toUpperCase()}
-              </div>
-            )}
+            <div className="inrtHeaderAvatar inrtHeaderAvatarPlaceholder" aria-hidden>
+              {(userDisplayName || userEmail || '?').slice(0, 1).toUpperCase()}
+            </div>
             <div className="hidden sm:flex flex-col min-w-0 items-end text-right">
               {userDisplayName ? (
                 <span className="inrtHeaderDisplayName truncate max-w-[200px]">{userDisplayName}</span>

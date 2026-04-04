@@ -5,7 +5,6 @@ import { Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useDashboardData } from '@/lib/dashboard-data-context';
-import { DashboardChrome } from '@/components/dashboard/DashboardChrome';
 import { DashboardBackLink } from '@/components/dashboard/DashboardBackLink';
 
 const BSC_ADDR_PATTERN = /^0x[a-fA-F0-9]{40}$/;
@@ -53,7 +52,7 @@ export default function DashboardSendPage() {
   }
 
   return (
-    <DashboardChrome title="Send" subtitle="Instant internal transfer" loginNext="/dashboard/send">
+    <>
       {error ? <div className="adminPvAlert adminPvAlertErr">{error}</div> : null}
       {msg ? <div className="adminPvAlert adminPvAlertOk">{msg}</div> : null}
 
@@ -126,6 +125,6 @@ export default function DashboardSendPage() {
         </div>
         <DashboardBackLink />
       </section>
-    </DashboardChrome>
+    </>
   );
 }

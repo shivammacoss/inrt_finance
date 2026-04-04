@@ -4,14 +4,13 @@ import Link from 'next/link';
 import QRCode from 'react-qr-code';
 import { Wallet } from 'lucide-react';
 import { useDashboardData } from '@/lib/dashboard-data-context';
-import { DashboardChrome } from '@/components/dashboard/DashboardChrome';
 import { DashboardBackLink } from '@/components/dashboard/DashboardBackLink';
 
 export default function DashboardWalletPage() {
   const { wallet, depositAddr, contractAddr, balance, dataLoading, load } = useDashboardData();
 
   return (
-    <DashboardChrome title="Wallet" subtitle="Addresses & on-chain deposit" loginNext="/dashboard/wallet">
+    <>
       <section className="adminPvSection">
         <div className="adminPvGrid2" style={{ alignItems: 'start' }}>
           <div className="adminPvCard inrtCardPro max-w-xl">
@@ -54,7 +53,7 @@ export default function DashboardWalletPage() {
             <p className="inrtSectionHint">
               Send assets here only when your flow requires the custodian address. You still need an approved deposit
               request — start from{' '}
-              <Link href="/dashboard/deposit" style={{ color: '#0d9488', fontWeight: 600 }}>
+              <Link href="/dashboard/deposit" className="inrtCbLinkBtn">
                 Deposit
               </Link>
               .
@@ -94,6 +93,6 @@ export default function DashboardWalletPage() {
         </div>
         <DashboardBackLink />
       </section>
-    </DashboardChrome>
+    </>
   );
 }

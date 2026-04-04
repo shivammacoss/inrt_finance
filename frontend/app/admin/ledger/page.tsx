@@ -1,14 +1,13 @@
 'use client';
 
 import { useAdminData } from '@/lib/admin-data-context';
-import { AdminChrome } from '@/components/admin/AdminChrome';
 import { AdminBackLink } from '@/components/admin/AdminBackLink';
 
 export default function AdminLedgerPage() {
   const { txs, actions } = useAdminData();
 
   return (
-    <AdminChrome title="Transactions" subtitle="Ledger & admin actions" loginNext="/admin/ledger">
+    <>
       <section className="adminPvSection">
         <div className="adminPvGrid2">
           <div className="adminPvCard">
@@ -64,6 +63,6 @@ export default function AdminLedgerPage() {
         </div>
         <AdminBackLink />
       </section>
-    </AdminChrome>
+    </>
   );
 }

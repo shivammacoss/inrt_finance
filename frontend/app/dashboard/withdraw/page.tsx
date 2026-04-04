@@ -6,7 +6,6 @@ import { Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useDashboardData } from '@/lib/dashboard-data-context';
-import { DashboardChrome } from '@/components/dashboard/DashboardChrome';
 import { DashboardBackLink } from '@/components/dashboard/DashboardBackLink';
 import type { DashboardPayMethod } from '@/components/dashboard/dashboard-types';
 
@@ -67,7 +66,7 @@ export default function DashboardWithdrawPage() {
   }
 
   return (
-    <DashboardChrome title="Withdraw" subtitle="Request payout off-platform" loginNext="/dashboard/withdraw">
+    <>
       {error ? <div className="adminPvAlert adminPvAlertErr">{error}</div> : null}
       {msg ? <div className="adminPvAlert adminPvAlertOk">{msg}</div> : null}
 
@@ -78,7 +77,7 @@ export default function DashboardWithdrawPage() {
             <h3 className="inrtSectionTitle">Request withdrawal</h3>
             <p className="inrtSectionHint">
               Payout method is how you receive funds. Your BSC wallet on file is used for verification — see{' '}
-              <Link href="/dashboard/profile" style={{ color: '#0d9488', fontWeight: 600 }}>
+              <Link href="/dashboard/profile" className="inrtCbLinkBtn">
                 Profile
               </Link>
               .
@@ -168,6 +167,6 @@ export default function DashboardWithdrawPage() {
         </div>
         <DashboardBackLink />
       </section>
-    </DashboardChrome>
+    </>
   );
 }

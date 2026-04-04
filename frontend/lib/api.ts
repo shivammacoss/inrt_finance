@@ -121,9 +121,8 @@ export const api = {
   logout: () => request<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
   refresh: () => request<{ user: SafeUser }>('/auth/refresh', { method: 'POST' }),
   me: () => request<{ user: SafeUser }>('/auth/me'),
-  putProfile: (
-    body: { fullName?: string; walletAddress?: string; phone?: string; avatarUrl?: string }
-  ) => request<{ user: SafeUser; message: string }>('/user/profile', { method: 'PUT', body }),
+  putProfile: (body: { fullName?: string; walletAddress?: string; phone?: string }) =>
+    request<{ user: SafeUser; message: string }>('/user/profile', { method: 'PUT', body }),
   updateProfile: (walletAddress: string) =>
     request<{ user: SafeUser }>('/auth/profile', {
       method: 'PATCH',

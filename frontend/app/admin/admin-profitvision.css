@@ -10,49 +10,66 @@
 }
 
 .adminPvRoot {
-  --pv-active: #ef4444;
-  --pv-active-hover: #dc2626;
+  /* Exchange-style gold primary + fintech secondary accents (not a Binance clone) */
+  --pv-active: #f0b90b;
+  --pv-active-mid: #fcd535;
+  --pv-active-hover: #d9a60a;
+  --pv-on-accent: #0b0e11;
   --pv-blue: #3b82f6;
-  --pv-green: #22c55e;
+  --pv-green: #0ecb81;
   --pv-purple: #a855f7;
   --pv-orange: #f97316;
+  --pv-cyan: #2de1e1;
+  --pv-magenta: #e879f9;
   min-height: 100vh;
   height: 100vh;
   overflow: hidden;
   display: flex;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 .adminPvRoot.light {
-  --pv-page-bg: #f9fafb;
+  --pv-page-bg: #f3f4f6;
   --pv-sidebar-bg: #ffffff;
   --pv-sidebar-border: #e5e7eb;
-  --pv-text: #111827;
-  --pv-muted: #6b7280;
+  --pv-text: #0b0e11;
+  --pv-muted: #5e6673;
   --pv-card: #ffffff;
-  --pv-card-border: #e5e7eb;
+  --pv-card-border: #eaeaec;
   --pv-row-bg: #f9fafb;
-  --pv-header-bg: rgba(255, 255, 255, 0.95);
-  --pv-nav-hover: #f3f4f6;
+  --pv-header-bg: rgba(255, 255, 255, 0.92);
+  --pv-nav-hover: #f0f2f5;
+  --pv-active: #c99400;
+  --pv-active-mid: #e8b923;
+  --pv-active-hover: #b8860b;
 }
 
 .adminPvRoot.dark {
-  --pv-page-bg: #0a0a0a;
-  --pv-sidebar-bg: #0a0a0a;
-  --pv-sidebar-border: #1f2937;
-  --pv-text: #f9fafb;
-  --pv-muted: #9ca3af;
-  --pv-card: #111111;
-  --pv-card-border: #374151;
-  --pv-row-bg: #1a1a1a;
-  --pv-header-bg: rgba(10, 10, 10, 0.95);
-  --pv-nav-hover: #1f2937;
+  --pv-page-bg: #0b0e11;
+  --pv-sidebar-bg: #12161c;
+  --pv-sidebar-border: #2b3139;
+  --pv-text: #eaecef;
+  --pv-muted: #848e9c;
+  --pv-card: #1e2329;
+  --pv-card-border: #2b3139;
+  --pv-row-bg: #181a20;
+  --pv-header-bg: rgba(18, 22, 28, 0.88);
+  --pv-nav-hover: #2b3139;
 }
 
 .adminPvRoot {
   background: var(--pv-page-bg);
   color: var(--pv-text);
+}
+
+.adminPvRoot.dark {
+  background: radial-gradient(ellipse 90% 55% at 100% -10%, rgba(45, 225, 225, 0.07), transparent),
+    radial-gradient(ellipse 70% 45% at -5% 110%, rgba(232, 121, 249, 0.06), transparent), var(--pv-page-bg);
+}
+
+.adminPvRoot.light {
+  background: radial-gradient(ellipse 80% 50% at 100% 0%, rgba(240, 185, 11, 0.06), transparent), var(--pv-page-bg);
 }
 
 .adminPvOverlay {
@@ -72,10 +89,6 @@
   display: flex;
   flex-direction: column;
   transition: transform 0.3s ease, width 0.3s ease;
-}
-
-.adminPvSidebar.collapsed {
-  width: 4rem;
 }
 
 @media (max-width: 1023px) {
@@ -125,7 +138,7 @@
   object-fit: cover;
   flex-shrink: 0;
   display: block;
-  background: #0a0a0a;
+  background: var(--pv-sidebar-bg);
 }
 
 .adminPvLogoImgLink {
@@ -133,7 +146,7 @@
   border-radius: 0.5rem;
   overflow: hidden;
   line-height: 0;
-  background: #0a0a0a;
+  background: var(--pv-sidebar-bg);
 }
 
 .adminPvNav {
@@ -166,13 +179,16 @@
 }
 
 .adminPvNavBtn.active {
-  background: var(--pv-active);
-  color: #fff;
+  background: linear-gradient(135deg, var(--pv-active) 0%, var(--pv-active-mid) 100%);
+  color: var(--pv-on-accent);
+  font-weight: 600;
+  box-shadow: 0 0 24px rgba(240, 185, 11, 0.22);
 }
 
 .adminPvNavBtn.active:hover {
-  background: var(--pv-active-hover);
-  color: #fff;
+  background: linear-gradient(135deg, var(--pv-active-hover) 0%, var(--pv-active) 100%);
+  color: var(--pv-on-accent);
+  box-shadow: 0 0 28px rgba(240, 185, 11, 0.3);
 }
 
 a.adminPvNavLink {
@@ -273,9 +289,13 @@ a.adminPvNavLink {
 .adminPvStatCard {
   background: var(--pv-card);
   border: 1px solid var(--pv-card-border);
-  border-radius: 0.75rem;
+  border-radius: 0.85rem;
   padding: 1.25rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.adminPvRoot.dark .adminPvStatCard {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .adminPvStatTop {
@@ -338,9 +358,13 @@ a.adminPvNavLink {
 .adminPvCard {
   background: var(--pv-card);
   border: 1px solid var(--pv-card-border);
-  border-radius: 0.75rem;
+  border-radius: 0.85rem;
   padding: 1.25rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.adminPvRoot.dark .adminPvCard {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .adminPvCard h3 {
@@ -396,11 +420,13 @@ a.adminPvNavLink {
 }
 
 .adminPvBtnPrimary {
-  background: var(--pv-active);
-  color: #fff;
+  background: linear-gradient(135deg, var(--pv-active) 0%, var(--pv-active-mid) 100%);
+  color: var(--pv-on-accent);
+  box-shadow: 0 2px 12px rgba(240, 185, 11, 0.25);
 }
 .adminPvBtnPrimary:hover:not(:disabled) {
-  background: var(--pv-active-hover);
+  background: linear-gradient(135deg, var(--pv-active-hover) 0%, var(--pv-active) 100%);
+  filter: brightness(1.03);
 }
 
 .adminPvBtnGhost {
@@ -493,16 +519,6 @@ a.adminPvNavLink {
 .adminPvLinkDash:hover {
   background: var(--pv-nav-hover);
   color: var(--pv-text);
-}
-
-.adminPvCollapseToggle {
-  display: none;
-}
-
-@media (min-width: 1024px) {
-  .adminPvCollapseToggle {
-    display: flex;
-  }
 }
 
 .adminInrtPage {
