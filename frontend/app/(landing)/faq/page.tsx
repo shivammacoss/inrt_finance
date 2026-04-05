@@ -111,7 +111,7 @@ export default function FAQPage() {
           <div>
             <p className="inrt-eyebrow">Still need help?</p>
             <h2>Contact our support team</h2>
-            <p className="lead">Can't find what you're looking for? Our team is available to help you with any questions about INRT, the platform, or your account.</p>
+            <p className="lead">Can&apos;t find what you&apos;re looking for? Our team is available to help you with any questions about INRT, the platform, or your account.</p>
           </div>
           <div className="inrt-glass-card">
             <h3>Get in touch</h3>
