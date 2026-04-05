@@ -36,12 +36,14 @@ const requestSchema = new mongoose.Schema(
 );
 
 requestSchema.index({ status: 1, createdAt: -1 });
+/** Uniqueness only while request is open — avoids blocking the same UTR after approve/reject */
 requestSchema.index(
   { paymentReference: 1 },
   {
     unique: true,
     partialFilterExpression: {
       paymentReference: { $exists: true, $type: 'string', $nin: ['', null] },
+      status: { $in: ['pending', 'processing'] },
     },
   }
 );

@@ -6,8 +6,16 @@ import { AuthProvider } from '@/lib/auth-context';
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'INRT — Digital Asset Platform',
+  title: {
+    default: 'INRT',
+    template: '%s | INRT',
+  },
   description: 'Deposit, transfer, and withdraw INRT on BNB Smart Chain',
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

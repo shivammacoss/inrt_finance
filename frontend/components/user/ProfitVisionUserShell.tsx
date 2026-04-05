@@ -31,6 +31,17 @@ export type UserNavId =
   | 'requests'
   | 'history';
 
+export const USER_SCROLL_SECTION_IDS: UserNavId[] = [
+  'overview',
+  'wallet',
+  'deposit',
+  'withdraw',
+  'send',
+  'requests',
+  'history',
+  'profile',
+];
+
 type NavItem = {
   id: UserNavId;
   label: string;

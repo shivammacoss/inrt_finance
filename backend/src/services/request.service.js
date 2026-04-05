@@ -8,7 +8,9 @@ const walletService = require('./wallet.service');
 function requireProfileWallet(user) {
   const w = user.walletAddress && String(user.walletAddress).trim();
   if (!w || !ethers.isAddress(w)) {
-    const err = new Error('Please add your wallet address in profile first');
+    const err = new Error(
+      'Set a valid BSC wallet in Profile first (0x + 40 hex characters). Admin credits INRT to that address after approving your deposit.'
+    );
     err.status = 400;
     throw err;
   }
@@ -46,18 +48,29 @@ async function createDepositRequest(userId, { amount, paymentMethod, paymentRefe
 
   const payStatus = ref ? 'pending_review' : 'none';
 
-  return Request.create({
-    user: userId,
-    type: 'deposit',
-    amount: amt,
-    status: 'pending',
-    walletAddress: wallet,
-    paymentMethod: method,
-    withdrawalMethod: '',
-    note: compositeNote,
-    paymentReference: ref,
-    paymentVerificationStatus: payStatus,
-  });
+  try {
+    return await Request.create({
+      user: userId,
+      type: 'deposit',
+      amount: amt,
+      status: 'pending',
+      walletAddress: wallet,
+      paymentMethod: method,
+      withdrawalMethod: '',
+      note: compositeNote,
+      paymentReference: ref,
+      paymentVerificationStatus: payStatus,
+    });
+  } catch (e) {
+    if (e && (e.code === 11000 || String(e.message || '').includes('E11000'))) {
+      const err = new Error(
+        'This payment reference is already used on an open request. Use a unique UPI / bank transaction ID, or wait until your previous request is completed.'
+      );
+      err.status = 409;
+      throw err;
+    }
+    throw e;
+  }
 }
 
 async function createWithdrawRequest(userId, { amount, withdrawalMethod, payoutDetails }, env) {

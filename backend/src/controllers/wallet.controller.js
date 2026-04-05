@@ -69,7 +69,17 @@ const depositRequestValidators = [
   body('paymentMethod')
     .isIn(['upi', 'bank_transfer', 'card', 'other'])
     .withMessage('Invalid payment method'),
-  body('paymentReference').optional().isString().trim().isLength({ max: 500 }),
+  body('paymentReference').custom((val, { req }) => {
+    const ref = val != null ? String(val).trim() : '';
+    if (ref.length > 500) throw new Error('Payment reference too long');
+    const m = String(req.body?.paymentMethod || '');
+    if (m === 'upi' || m === 'bank_transfer' || m === 'card') {
+      if (ref.length < 4) {
+        throw new Error('Enter your payment reference or transaction ID (at least 4 characters)');
+      }
+    }
+    return true;
+  }),
 ];
 
 const withdrawRequestValidators = [

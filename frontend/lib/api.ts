@@ -70,7 +70,13 @@ function formatApiError(data: unknown, fallback: string): string {
     details?: { msg?: string; path?: string }[];
   };
   if (d.error === 'Validation failed' && Array.isArray(d.details) && d.details.length > 0) {
-    const parts = d.details.map((x) => x.msg || `${x.path}: invalid`).filter(Boolean);
+    const parts = d.details
+      .map((x) => {
+        if (!x || typeof x !== 'object') return '';
+        const o = x as { msg?: string; message?: string; path?: string };
+        return o.msg || o.message || (o.path ? `${o.path}: invalid` : '');
+      })
+      .filter(Boolean);
     if (parts.length) return parts.join(' ');
   }
   if (d.error) return d.error;

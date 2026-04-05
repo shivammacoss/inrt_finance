@@ -11,6 +11,8 @@ import { DashboardBackLink } from '@/components/dashboard/DashboardBackLink';
 import { PaymentInstructions } from '@/components/dashboard/PaymentInstructions';
 import type { DashboardPayMethod } from '@/components/dashboard/dashboard-types';
 
+const BSC_WALLET_RE = /^0x[a-fA-F0-9]{40}$/;
+
 type RazorpayHandlerResponse = {
   razorpay_order_id: string;
   razorpay_payment_id: string;
@@ -33,7 +35,8 @@ function loadRazorpayScript(): Promise<void> {
 
 export default function DashboardDepositPage() {
   const { user } = useAuth();
-  const { depositAddr, contractAddr, paymentRails, load } = useDashboardData();
+  const { depositAddr, contractAddr, paymentRails, wallet, load } = useDashboardData();
+  const hasBscWallet = BSC_WALLET_RE.test((wallet || '').trim());
   const [depReqAmt, setDepReqAmt] = useState('');
   const [depPaymentMethod, setDepPaymentMethod] = useState<DashboardPayMethod>('upi');
   const [depRef, setDepRef] = useState('');
@@ -48,6 +51,18 @@ export default function DashboardDepositPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user || submitting) return;
+    if (!hasBscWallet) {
+      setError('Add a valid BSC wallet in Profile (0x + 40 hex) before submitting a deposit request.');
+      return;
+    }
+    const refTrim = depRef.trim();
+    if (
+      (depPaymentMethod === 'upi' || depPaymentMethod === 'bank_transfer' || depPaymentMethod === 'card') &&
+      refTrim.length < 4
+    ) {
+      setError('Enter your payment reference or transaction ID (at least 4 characters).');
+      return;
+    }
     setError('');
     setMsg('');
     setSubmitting(true);
@@ -55,7 +70,7 @@ export default function DashboardDepositPage() {
       const r = await api.depositRequest({
         amount: depReqAmt.trim(),
         paymentMethod: depPaymentMethod,
-        paymentReference: depRef.trim() || undefined,
+        paymentReference: refTrim || undefined,
       });
       setMsg(r.message || 'Request submitted, waiting for admin approval');
       setDepReqAmt('');
@@ -193,11 +208,20 @@ export default function DashboardDepositPage() {
                 Profile
               </Link>
               . On-chain address & QR:{' '}
-              <Link href="/dashboard/profile" className="inrtCbLinkBtn">
-                Profile
+              <Link href="/dashboard/wallet" className="inrtCbLinkBtn">
+                Wallet
               </Link>
               .
             </p>
+            {!hasBscWallet ? (
+              <div className="adminPvAlert adminPvAlertErr" style={{ marginBottom: '1rem' }}>
+                <strong>BSC wallet required.</strong> Save a valid address (0x + 40 hex) in{' '}
+                <Link href="/dashboard/profile" className="inrtCbLinkBtn" style={{ display: 'inline' }}>
+                  Profile
+                </Link>{' '}
+                — without it the server cannot accept a deposit request.
+              </div>
+            ) : null}
             <form onSubmit={onSubmit}>
               <div className="adminPvField">
                 <label htmlFor="dAmt">Amount (INRT)</label>
@@ -243,7 +267,11 @@ export default function DashboardDepositPage() {
                   disabled={submitting}
                 />
               </div>
-              <button type="submit" className="adminPvBtn adminPvBtnPrimary" disabled={submitting}>
+              <button
+                type="submit"
+                className="adminPvBtn adminPvBtnPrimary"
+                disabled={submitting || !hasBscWallet}
+              >
                 {submitting ? (
                   <>
                     <Loader2 size={16} className="adminPvSpin" /> Submitting…
